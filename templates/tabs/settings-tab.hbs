@@ -1,0 +1,62 @@
+<section class="tab settings-tab {{tab.cssClass}}" data-group="primary" data-tab="settings">
+  <div class="tab-search">
+    <i class="fas fa-search"></i>
+    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off">
+  </div>
+
+  {{#each settingsGroups}}
+    <fieldset class="namespace-group collapsed {{this.status}}" data-namespace="{{this.namespace}}">
+      <div class="namespace-header" data-action="toggleSection">
+        <legend>
+          <i class="fas fa-caret-down"></i>
+          <span class="tag badge {{this.badgeClass}}">{{this.statusLabel}}</span>
+          {{this.namespace}}
+          <span class="count">({{this.count}})</span>
+          {{#if this.hasStale}}<span class="stale-badge">{{this.staleCount}} stale</span>{{/if}}
+        </legend>
+        {{#if this.canClean}}
+          <button type="button" data-action="deleteModuleSettings" data-namespace="{{this.namespace}}"
+            title="{{localize "SNOOT.Action.DeleteAll"}}">
+            <i class="fas fa-trash"></i> {{localize "SNOOT.Action.DeleteAll"}}
+          </button>
+        {{/if}}
+      </div>
+      <div class="collapsible-content">
+        <table class="settings-table">
+          <thead>
+            <tr>
+              <th class="col-fit">{{localize "SNOOT.Label.Key"}}</th>
+              <th>{{localize "SNOOT.Label.Value"}}</th>
+              <th class="col-btn"></th>
+              <th class="col-btn"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each this.entries}}
+              <tr class="{{#if this.isStale}}stale-row{{/if}}">
+                <td class="setting-key"><code>{{this.settingKey}}</code></td>
+                <td class="setting-value"><code>{{this.displayValue}}</code></td>
+                <td class="col-btn">
+                  {{#if this.isStale}}
+                    <i class="fas fa-times-circle stale-icon" title="Not registered"></i>
+                  {{else}}
+                    <i class="fas fa-check-circle registered-icon" title="Registered"></i>
+                  {{/if}}
+                </td>
+                <td class="col-btn">
+                  <a data-action="deleteSetting" data-key="{{this.key}}" title="{{localize "SNOOT.Action.Delete"}}">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+  {{/each}}
+
+  {{#unless hasSettings}}
+    <p class="empty-state">{{localize "SNOOT.Empty.Settings"}}</p>
+  {{/unless}}
+</section>

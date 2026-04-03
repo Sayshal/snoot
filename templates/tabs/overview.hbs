@@ -1,0 +1,73 @@
+<section class="tab overview {{tab.cssClass}}" data-group="primary" data-tab="overview">
+  {{!-- Summary Cards --}}
+  <div class="summary-cards">
+    <div class="summary-card orphaned">
+      <div class="card-top">
+        <i class="fas fa-ghost"></i>
+        <span class="card-value">{{totals.orphanedSettings}}</span>
+      </div>
+      <span class="card-label">{{localize "SNOOT.Overview.OrphanedSettings"}}</span>
+    </div>
+    <div class="summary-card orphaned">
+      <div class="card-top">
+        <i class="fas fa-flag"></i>
+        <span class="card-value">{{totals.orphanedWorldFlags}}</span>
+      </div>
+      <span class="card-label">{{localize "SNOOT.Overview.OrphanedWorldFlags"}}</span>
+    </div>
+    <div class="summary-card orphaned">
+      <div class="card-top">
+        <i class="fas fa-atlas"></i>
+        <span class="card-value">{{totals.orphanedCompendiumFlags}}</span>
+      </div>
+      <span class="card-label">{{localize "SNOOT.Overview.OrphanedCompendiumFlags"}}</span>
+    </div>
+    <div class="summary-card stale">
+      <div class="card-top">
+        <i class="fas fa-hourglass-half"></i>
+        <span class="card-value">{{totals.staleSettings}}</span>
+      </div>
+      <span class="card-label">{{localize "SNOOT.Overview.StaleSettings"}}</span>
+    </div>
+  </div>
+
+  {{!-- Module List --}}
+  <h3>{{localize "SNOOT.Overview.ModuleList"}}</h3>
+  <div class="tab-search">
+    <i class="fas fa-search"></i>
+    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off">
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-module">{{localize "SNOOT.Label.Module"}}</th>
+        <th class="col-fit">{{localize "SNOOT.Label.Status"}}</th>
+        <th class="col-fit">{{localize "SNOOT.Label.Data"}}</th>
+        <th class="col-btn"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each modules}}
+        <tr>
+          <td class="module-name">{{this.id}}</td>
+          <td><span class="tag badge {{this.badgeClass}}" title="{{this.statusHint}}">{{this.statusLabel}}</span></td>
+          <td class="data-types">
+            {{#if this.hasSettings}}<i class="fas fa-cogs" title="{{localize "SNOOT.Tab.Settings"}}"></i>{{/if}}
+            {{#if this.hasWorldFlags}}<i class="fas fa-flag" title="{{localize "SNOOT.Tab.FlagsWorld"}}"></i>{{/if}}
+            {{#if this.hasCompendiumFlags}}<i class="fas fa-atlas"
+                title="{{localize "SNOOT.Tab.FlagsCompendiums"}}"></i>{{/if}}
+            {{#if this.hasStaleSettings}}<i class="fas fa-hourglass-half stale-icon"
+                title="{{localize "SNOOT.Overview.StaleSettings"}}"></i>{{/if}}
+          </td>
+          <td class="col-btn">
+            {{#if this.canClean}}
+              <a data-action="cleanModule" data-module-id="{{this.id}}" title="{{localize "SNOOT.Action.CleanModule"}}">
+                <i class="fas fa-trash"></i>
+              </a>
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>

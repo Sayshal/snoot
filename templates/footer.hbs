@@ -1,0 +1,20 @@
+<footer class="snoot-footer">
+  {{#if hasOrphaned}}
+    <button type="button" data-action="cleanAllOrphaned">
+      <i class="fas fa-broom"></i> {{localize "SNOOT.Action.CleanAllOrphaned"}}
+    </button>
+  {{/if}}
+  {{#if hasInactive}}
+    <button type="button" data-action="cleanAllInactive">
+      <i class="fas fa-power-off"></i> {{localize "SNOOT.Action.CleanAllInactive"}}
+    </button>
+  {{/if}}
+  {{#if hasStale}}
+    <button type="button" data-action="cleanAllStale">
+      <i class="fas fa-hourglass-half"></i> {{localize "SNOOT.Action.CleanAllStale"}}
+    </button>
+  {{/if}}
+  <button type="button" data-action="rescan">
+    <i class="fas fa-sync"></i> {{localize "SNOOT.Action.Rescan"}}
+  </button>
+</footer>

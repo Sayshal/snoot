@@ -1,0 +1,125 @@
+{
+  "SNOOT": {
+    "App": {
+      "Title": "Snoot"
+    },
+    "Settings": {
+      "Menu": {
+        "Name": "Snoot Data Sniffer",
+        "Label": "Sniff Data",
+        "Hint": "Open Snoot to find and clean up orphaned module data."
+      },
+      "ShowCoreFlags": {
+        "Name": "Show Foundry Flags",
+        "Hint": "Include Foundry core flags in scan results. This feature is largely untested and may produce noisy results."
+      },
+      "ShowSystemFlags": {
+        "Name": "Show System Flags",
+        "Hint": "Include game system flags in scan results. This feature is largely untested and may produce noisy results."
+      }
+    },
+    "Tab": {
+      "Overview": "Overview",
+      "Settings": "Settings",
+      "FlagsWorld": "World Flags",
+      "FlagsCompendiums": "Compendium Flags"
+    },
+    "Status": {
+      "system": "System",
+      "active": "Active",
+      "inactive": "Inactive",
+      "orphaned": "Orphaned"
+    },
+    "StatusHint": {
+      "system": "Foundry core or game system data",
+      "active": "Module is installed and enabled",
+      "inactive": "Module is installed but disabled",
+      "orphaned": "Module is no longer installed"
+    },
+    "Overview": {
+      "OrphanedSettings": "Orphaned Settings",
+      "OrphanedWorldFlags": "Orphaned World Flags",
+      "OrphanedCompendiumFlags": "Orphaned Compendium Flags",
+      "StaleSettings": "Stale Settings",
+      "ModuleList": "Modules with World Data"
+    },
+    "Label": {
+      "Module": "Module",
+      "Status": "Status",
+      "Data": "Data",
+      "Actions": "Actions",
+      "Key": "Key",
+      "Value": "Value",
+      "Registered": "Registered",
+      "Document": "Document",
+      "Type": "Type",
+      "FlagKeys": "Flag Keys",
+      "Pack": "Pack",
+      "Count": "Entries"
+    },
+    "Action": {
+      "CleanModule": "Clean Module",
+      "CleanAllOrphaned": "Clean All Orphaned",
+      "CleanAllInactive": "Clean All Inactive",
+      "CleanAllStale": "Clean All Stale",
+      "Rescan": "Rescan",
+      "Delete": "Delete",
+      "DeleteAll": "Delete All",
+      "Remove": "Remove",
+      "RemoveAll": "Remove All"
+    },
+    "Confirm": {
+      "CleanModule": {
+        "Title": "Clean Module Data",
+        "Content": "Delete all settings and remove all flags for <strong>{module}</strong>? This cannot be undone."
+      },
+      "CleanAll": {
+        "Title": "Clean All Orphaned Data",
+        "Content": "Delete all settings and remove all flags for every orphaned module? Orphaned modules are no longer installed. This cannot be undone."
+      },
+      "CleanInactive": {
+        "Title": "Clean All Inactive Data",
+        "Content": "Delete all settings and remove all flags for every inactive module? Inactive modules are installed but disabled. This cannot be undone."
+      },
+      "CleanStale": {
+        "Title": "Clean All Stale Settings",
+        "Content": "Delete all unregistered (stale) settings across every module? This cannot be undone."
+      },
+      "DeleteSetting": {
+        "Title": "Delete Setting",
+        "Content": "Delete the setting <code>{key}</code>? This cannot be undone."
+      },
+      "DeleteModuleSettings": {
+        "Title": "Delete Module Settings",
+        "Content": "Delete all settings for <strong>{module}</strong>? This cannot be undone."
+      },
+      "RemoveScope": {
+        "Title": "Remove Flag Scope",
+        "Content": "Remove all <strong>{scope}</strong> flags from every world document? This cannot be undone."
+      },
+      "RemoveCompendiumScope": {
+        "Title": "Remove Compendium Flag Scope",
+        "Content": "Remove all <strong>{scope}</strong> flags from every compendium document? Packs will be temporarily unlocked. This cannot be undone."
+      },
+      "RemoveDocFlag": {
+        "Title": "Remove Document Flag",
+        "Content": "Remove <strong>{scope}</strong> flags from <strong>{name}</strong>? This cannot be undone."
+      }
+    },
+    "Scan": {
+      "Start": "Sniffing world data…",
+      "Settings": "Scanned settings",
+      "WorldFlags": "Scanned world documents",
+      "Pack": "Scanning pack: {label}",
+      "Complete": "Scan complete!"
+    },
+    "Search": {
+      "Placeholder": "Search\u2026"
+    },
+    "Empty": {
+      "Settings": "No module settings found in world storage.",
+      "WorldFlags": "No flag scopes found in world documents.",
+      "CompendiumFlags": "No flag scopes found in compendium documents."
+    }
+  }
+}

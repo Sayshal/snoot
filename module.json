@@ -1,0 +1,44 @@
+{
+  "id": "snoot",
+  "title": "Snoot",
+  "version": "0.1.0",
+  "description": "Snoot sniffs out world documents, compendium data, module settings, and flags left behind by modules so you can inspect and clean up orphaned data.",
+  "authors": [
+    {
+      "name": "Tyler",
+      "discord": "Tyler",
+      "url": "https://github.com/Sayshal",
+      "flags": {}
+    }
+  ],
+  "url": "https://github.com/Sayshal/snoot",
+  "bugs": "https://github.com/Sayshal/snoot/issues",
+  "changelog": "https://github.com/Sayshal/snoot/releases",
+  "license": "https://github.com/Sayshal/snoot?tab=MIT-1-ov-file",
+  "readme": "https://github.com/Sayshal/snoot?tab=readme-ov-file",
+  "manifest": "https://github.com/Sayshal/snoot/releases/latest/download/module.json",
+  "download": "",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "esmodules": [
+    "scripts/snoot.mjs"
+  ],
+  "styles": [
+    "styles/snoot.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "flags": {
+    "hotReload": {
+      "extensions": ["css", "html", "hbs", "json"],
+      "paths": ["styles", "lang", "templates"]
+    }
+  }
+}

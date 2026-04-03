@@ -1,0 +1,58 @@
+<section class="tab flags-compendiums-tab {{tab.cssClass}}" data-group="primary" data-tab="flagsCompendiums">
+  <div class="tab-search">
+    <i class="fas fa-search"></i>
+    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off">
+  </div>
+
+  {{#each compendiumFlagsGroups}}
+    <fieldset class="namespace-group collapsed {{this.status}}" data-namespace="{{this.scope}}">
+      <div class="namespace-header" data-action="toggleSection">
+        <legend>
+          <i class="fas fa-caret-down"></i>
+          <span class="tag badge {{this.badgeClass}}">{{this.statusLabel}}</span>
+          {{this.scope}}
+          <span class="count">({{this.count}} docs)</span>
+        </legend>
+        {{#if this.canClean}}
+          <button type="button" data-action="removeCompendiumScopeFlags" data-scope="{{this.scope}}"
+            title="{{localize "SNOOT.Action.RemoveAll"}}">
+            <i class="fas fa-trash"></i> {{localize "SNOOT.Action.RemoveAll"}}
+          </button>
+        {{/if}}
+      </div>
+      <div class="collapsible-content">
+        <table class="flags-table">
+          <thead>
+            <tr>
+              <th class="col-fit">{{localize "SNOOT.Label.Document"}}</th>
+              <th class="col-fit">{{localize "SNOOT.Label.Type"}}</th>
+              <th class="col-fit">{{localize "SNOOT.Label.Pack"}}</th>
+              <th>{{localize "SNOOT.Label.FlagKeys"}}</th>
+              <th class="col-btn"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each this.documents}}
+              <tr>
+                <td class="doc-name">{{this.name}}</td>
+                <td>{{this.type}}</td>
+                <td class="pack-label">{{this.packLabel}}</td>
+                <td class="flag-keys"><code>{{this.flagKeysDisplay}}</code></td>
+                <td class="col-btn">
+                  <a data-action="removeCompendiumDocFlag" data-uuid="{{this.uuid}}" data-scope="{{../scope}}"
+                    title="{{localize "SNOOT.Action.Remove"}}">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+  {{/each}}
+
+  {{#unless hasCompendiumFlags}}
+    <p class="empty-state">{{localize "SNOOT.Empty.CompendiumFlags"}}</p>
+  {{/unless}}
+</section>
