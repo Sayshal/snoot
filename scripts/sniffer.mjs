@@ -35,7 +35,23 @@ export class DataSniffer {
     }
     ui.notifications.clear();
     ui.notifications.success(game.i18n.localize('SNOOT.Scan.Complete'), { duration: 3000 });
+    DataSniffer.#warnOrphanedFlags(flags, compendiumFlags);
     return { settings, flags, compendiumFlags };
+  }
+
+  /**
+   * Log a console warning for any flag scopes whose module is not installed.
+   * @param {object} worldFlags - World flags grouped by scope.
+   * @param {object} compendiumFlags - Compendium flags grouped by scope.
+   * @private
+   */
+  static #warnOrphanedFlags(worldFlags, compendiumFlags) {
+    for (const [type, scopes] of [['world', worldFlags], ['compendium', compendiumFlags]]) {
+      for (const [scope, data] of Object.entries(scopes)) {
+        if (data.status !== 'orphaned') continue;
+        console.warn(`Snoot | Orphaned ${type} flag scope "${scope}" (${data.documents.length} documents)`);
+      }
+    }
   }
 
   /**

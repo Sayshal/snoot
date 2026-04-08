@@ -1,20 +1,23 @@
 <footer class="snoot-footer">
   {{#if hasOrphaned}}
-    <button type="button" data-action="cleanAllOrphaned">
+    <button type="button" data-action="cleanAllOrphaned" data-tooltip
+      aria-label="{{localize "SNOOT.Confirm.CleanAll.Content"}}">
       <i class="fas fa-broom"></i> {{localize "SNOOT.Action.CleanAllOrphaned"}}
     </button>
   {{/if}}
   {{#if hasInactive}}
-    <button type="button" data-action="cleanAllInactive">
+    <button type="button" data-action="cleanAllInactive" data-tooltip
+      aria-label="{{localize "SNOOT.Confirm.CleanInactive.Content"}}">
       <i class="fas fa-power-off"></i> {{localize "SNOOT.Action.CleanAllInactive"}}
     </button>
   {{/if}}
   {{#if hasStale}}
-    <button type="button" data-action="cleanAllStale">
+    <button type="button" data-action="cleanAllStale" data-tooltip
+      aria-label="{{localize "SNOOT.Confirm.CleanStale.Content"}}">
       <i class="fas fa-hourglass-half"></i> {{localize "SNOOT.Action.CleanAllStale"}}
     </button>
   {{/if}}
-  <button type="button" data-action="rescan">
+  <button type="button" data-action="rescan" data-tooltip aria-label="{{localize "SNOOT.Action.Rescan"}}">
     <i class="fas fa-sync"></i> {{localize "SNOOT.Action.Rescan"}}
   </button>
 </footer>

@@ -52,6 +52,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static PARTS = {
     tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    howTo: { template: TEMPLATES.HOW_TO, scrollable: [''] },
     overview: { template: TEMPLATES.OVERVIEW, scrollable: [''] },
     settings: { template: TEMPLATES.SETTINGS, scrollable: [''] },
     flagsWorld: { template: TEMPLATES.FLAGS_WORLD, scrollable: [''] },
@@ -62,12 +63,13 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static TABS = {
     primary: {
       tabs: [
+        { id: 'howTo', group: 'primary', icon: 'fas fa-circle-question', label: 'SNOOT.Tab.HowTo' },
         { id: 'overview', group: 'primary', icon: 'fas fa-chart-pie', label: 'SNOOT.Tab.Overview' },
         { id: 'settings', group: 'primary', icon: 'fas fa-cogs', label: 'SNOOT.Tab.Settings' },
         { id: 'flagsWorld', group: 'primary', icon: 'fas fa-flag', label: 'SNOOT.Tab.FlagsWorld' },
         { id: 'flagsCompendiums', group: 'primary', icon: 'fas fa-atlas', label: 'SNOOT.Tab.FlagsCompendiums' }
       ],
-      initial: 'overview'
+      initial: 'howTo'
     }
   };
 
@@ -78,7 +80,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const report = this.#report;
     const totals = { orphanedSettings: 0, orphanedWorldFlags: 0, orphanedCompendiumFlags: 0, staleSettings: 0, totalSettings: 0, totalWorldFlags: 0, totalCompendiumFlags: 0 };
     const moduleMap = {};
-    const addModule = (ns, data, type) => {
+    const addModule = (ns, data, type, n) => {
       if (!moduleMap[ns]) {
         const statusLabel = game.i18n.localize(`SNOOT.Status.${data.status}`);
         const statusHint = game.i18n.localize(`SNOOT.StatusHint.${data.status}`);
@@ -92,13 +94,15 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
           hasWorldFlags: false,
           hasCompendiumFlags: false,
           hasStaleSettings: false,
+          count: 0,
           canClean: !['active', 'system'].includes(data.status)
         };
       }
       moduleMap[ns][`has${type}`] = true;
+      moduleMap[ns].count += n;
     };
     for (const [ns, data] of Object.entries(report.settings)) {
-      addModule(ns, data, 'Settings');
+      addModule(ns, data, 'Settings', data.entries.length);
       totals.totalSettings += data.entries.length;
       if (data.status === 'orphaned') totals.orphanedSettings += data.entries.length;
       const staleCount = data.entries.filter((e) => e.isStale).length;
@@ -109,12 +113,12 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
     for (const [ns, data] of Object.entries(report.flags)) {
-      addModule(ns, data, 'WorldFlags');
+      addModule(ns, data, 'WorldFlags', data.documents.length);
       totals.totalWorldFlags += data.documents.length;
       if (data.status === 'orphaned') totals.orphanedWorldFlags += data.documents.length;
     }
     for (const [ns, data] of Object.entries(report.compendiumFlags)) {
-      addModule(ns, data, 'CompendiumFlags');
+      addModule(ns, data, 'CompendiumFlags', data.documents.length);
       totals.totalCompendiumFlags += data.documents.length;
       if (data.status === 'orphaned') totals.orphanedCompendiumFlags += data.documents.length;
     }
@@ -133,8 +137,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
         canClean: !['active', 'system'].includes(data.status),
         hasStale: staleCount > 0,
         staleCount,
-        count: data.entries.length,
-        entries: data.entries
+        count: data.entries.length
       };
     });
     const worldFlagsGroups = Object.entries(report.flags).map(([scope, data]) => ({
@@ -143,8 +146,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       statusLabel: game.i18n.localize(`SNOOT.Status.${data.status}`),
       badgeClass: BADGE_CLASS[data.status],
       canClean: !['active', 'system'].includes(data.status),
-      count: data.documents.length,
-      documents: data.documents.map((d) => ({ ...d, flagKeysDisplay: d.flagKeys.join(', ') }))
+      count: data.documents.length
     }));
     const compendiumFlagsGroups = Object.entries(report.compendiumFlags).map(([scope, data]) => ({
       scope,
@@ -152,8 +154,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       statusLabel: game.i18n.localize(`SNOOT.Status.${data.status}`),
       badgeClass: BADGE_CLASS[data.status],
       canClean: !['active', 'system'].includes(data.status),
-      count: data.documents.length,
-      documents: data.documents.map((d) => ({ ...d, flagKeysDisplay: d.flagKeys.join(', ') }))
+      count: data.documents.length
     }));
     const hasSettings = settingsGroups.length > 0;
     const hasWorldFlags = worldFlagsGroups.length > 0;
@@ -164,7 +165,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @override */
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
-    const tabParts = ['overview', 'settings', 'flagsWorld', 'flagsCompendiums'];
+    const tabParts = ['howTo', 'overview', 'settings', 'flagsWorld', 'flagsCompendiums'];
     if (tabParts.includes(partId)) context.tab = context.tabs?.[partId];
     return context;
   }
@@ -182,15 +183,137 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Restore expanded sections after a re-render.
+   * Restore expanded sections after a re-render and lazy-render their rows.
    * @private
    */
   #restoreExpandedSections() {
     for (const [key, expanded] of this.#expandedSections) {
       if (!expanded) continue;
       const group = this.element.querySelector(`.namespace-group[data-namespace="${key}"]`);
-      if (group) group.classList.remove('collapsed');
+      if (!group) continue;
+      group.classList.remove('collapsed');
+      this.#renderGroupRows(group);
     }
+  }
+
+  /**
+   * Build a settings row HTML string.
+   * @param {object} entry - Setting entry from the report.
+   * @returns {string} Row HTML.
+   * @private
+   */
+  #settingRowHtml(entry) {
+    const esc = foundry.utils.escapeHTML;
+    const stale = entry.isStale ? 'stale-row' : '';
+    const tip = esc(game.i18n.localize(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
+    const iconClass = entry.isStale ? 'fa-times-circle stale-icon' : 'fa-check-circle registered-icon';
+    const del = esc(game.i18n.localize('SNOOT.Action.Delete'));
+    return `<tr class="${stale}"><td class="setting-key"><code>${esc(entry.settingKey)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="deleteSetting" data-key="${esc(entry.key)}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
+  }
+
+  /**
+   * Build a world-flags row HTML string.
+   * @param {object} doc - Document entry from the report.
+   * @param {string} scope - The flag scope.
+   * @returns {string} Row HTML.
+   * @private
+   */
+  #worldFlagRowHtml(doc, scope) {
+    const esc = foundry.utils.escapeHTML;
+    const remove = esc(game.i18n.localize('SNOOT.Action.Remove'));
+    const keys = esc(doc.flagKeys.join(', '));
+    return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
+  }
+
+  /**
+   * Build a compendium-flags row HTML string.
+   * @param {object} doc - Document entry from the report.
+   * @param {string} scope - The flag scope.
+   * @returns {string} Row HTML.
+   * @private
+   */
+  #compendiumFlagRowHtml(doc, scope) {
+    const esc = foundry.utils.escapeHTML;
+    const remove = esc(game.i18n.localize('SNOOT.Action.Remove'));
+    const keys = esc(doc.flagKeys.join(', '));
+    return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="pack-label">${esc(doc.packLabel)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeCompendiumDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
+  }
+
+  /**
+   * Lazily populate a namespace group's tbody with rows from the cached report.
+   * @param {HTMLElement} groupEl - The .namespace-group element.
+   * @private
+   */
+  #renderGroupRows(groupEl) {
+    if (!groupEl || groupEl.dataset.loaded === 'true') return;
+    const tbody = groupEl.querySelector('tbody');
+    if (!tbody) return;
+    const ns = groupEl.dataset.namespace;
+    const tab = groupEl.closest('.tab');
+    let html = '';
+    if (tab?.classList.contains('settings-tab')) {
+      const data = this.#report?.settings?.[ns];
+      if (data) html = data.entries.map((e) => this.#settingRowHtml(e)).join('');
+    } else if (tab?.classList.contains('flags-world-tab')) {
+      const data = this.#report?.flags?.[ns];
+      if (data) html = data.documents.map((d) => this.#worldFlagRowHtml(d, ns)).join('');
+    } else if (tab?.classList.contains('flags-compendiums-tab')) {
+      const data = this.#report?.compendiumFlags?.[ns];
+      if (data) html = data.documents.map((d) => this.#compendiumFlagRowHtml(d, ns)).join('');
+    }
+    tbody.innerHTML = html;
+    groupEl.dataset.loaded = 'true';
+  }
+
+  /**
+   * Look up cached entries for a namespace group and return those matching a query.
+   * @param {HTMLElement} tab - The active tab element.
+   * @param {string} ns - Namespace/scope id.
+   * @param {string} query - Lowercased search query.
+   * @returns {boolean} True if any cached entry matches.
+   * @private
+   */
+  #hasCachedMatch(tab, ns, query) {
+    if (tab.classList.contains('settings-tab')) {
+      const entries = this.#report?.settings?.[ns]?.entries ?? [];
+      return entries.some(
+        (e) =>
+          e.settingKey.toLowerCase().includes(query) ||
+          String(e.displayValue ?? '')
+            .toLowerCase()
+            .includes(query)
+      );
+    }
+    if (tab.classList.contains('flags-world-tab')) {
+      const docs = this.#report?.flags?.[ns]?.documents ?? [];
+      return docs.some(
+        (d) =>
+          String(d.name ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          String(d.type ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          d.flagKeys.join(',').toLowerCase().includes(query)
+      );
+    }
+    if (tab.classList.contains('flags-compendiums-tab')) {
+      const docs = this.#report?.compendiumFlags?.[ns]?.documents ?? [];
+      return docs.some(
+        (d) =>
+          String(d.name ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          String(d.type ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          String(d.packLabel ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          d.flagKeys.join(',').toLowerCase().includes(query)
+      );
+    }
+    return false;
   }
 
   /**
@@ -223,27 +346,25 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const groups = tab.querySelectorAll('.namespace-group');
     for (const group of groups) {
-      const headerText = group.querySelector('.namespace-header').textContent.toLowerCase();
-      const rows = group.querySelectorAll('tbody tr');
-      let anyRowMatch = false;
+      const ns = group.dataset.namespace;
       if (!query) {
         group.style.display = '';
-        for (const row of rows) row.style.display = '';
-        const ns = group.dataset.namespace;
         if (!this.#expandedSections.get(ns)) group.classList.add('collapsed');
         else group.classList.remove('collapsed');
+        for (const row of group.querySelectorAll('tbody tr')) row.style.display = '';
         continue;
       }
+      const headerText = group.querySelector('.namespace-header').textContent.toLowerCase();
       const headerMatch = headerText.includes(query);
-      for (const row of rows) {
-        const rowText = row.textContent.toLowerCase();
-        const rowMatch = headerMatch || rowText.includes(query);
-        row.style.display = rowMatch ? '' : 'none';
-        if (rowMatch) anyRowMatch = true;
-      }
-      const groupVisible = headerMatch || anyRowMatch;
+      const groupVisible = headerMatch || this.#hasCachedMatch(tab, ns, query);
       group.style.display = groupVisible ? '' : 'none';
-      if (groupVisible) group.classList.remove('collapsed');
+      if (!groupVisible) continue;
+      this.#renderGroupRows(group);
+      group.classList.remove('collapsed');
+      for (const row of group.querySelectorAll('tbody tr')) {
+        if (headerMatch) row.style.display = '';
+        else row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+      }
     }
   }
 
@@ -277,6 +398,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const group = target.closest('.namespace-group');
     if (!group) return;
     const ns = group.dataset.namespace;
+    if (group.classList.contains('collapsed')) this.#renderGroupRows(group);
     const isCollapsed = group.classList.toggle('collapsed');
     this.#expandedSections.set(ns, !isCollapsed);
   }

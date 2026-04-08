@@ -6,42 +6,42 @@
   }
 
   .summary-cards {
-    display: flex;
     gap: 0.75rem;
+    display: flex;
     padding-top: 0.5rem;
   }
 
   .summary-card {
-    flex: 1;
+    gap: 0.25rem;
     display: flex;
+    flex: 1;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
     padding: 0.75rem 1rem;
+    border: 1px solid var(--color-cool-5);
     border-radius: 8px;
     background: var(--color-cool-4);
-    border: 1px solid var(--color-cool-5);
 
     .card-top {
+      gap: 0.5rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
 
       i {
-        font-size: 1rem;
         opacity: 0.6;
+        font-size: 1rem;
       }
     }
 
     .card-value {
-      font-size: 1.5rem;
       font-weight: bold;
+      font-size: 1.5rem;
       line-height: 1;
     }
 
     .card-label {
-      font-size: var(--font-size-11);
       color: var(--color-text-secondary);
+      font-size: var(--font-size-11);
     }
 
     &.orphaned {
@@ -62,13 +62,27 @@
   }
 
   .stale-badge {
-    font-size: var(--font-size-11);
-    font-weight: bold;
     color: var(--color-level-warning);
+    font-weight: bold;
+    font-size: var(--font-size-11);
   }
 
   .stale-row {
     background: color-mix(in srgb, var(--color-level-warning) 8%, transparent);
+  }
+
+  .status-row {
+    &.active {
+      background: color-mix(in srgb, var(--color-level-success) 8%, transparent);
+    }
+
+    &.inactive {
+      background: color-mix(in srgb, var(--color-level-warning) 10%, transparent);
+    }
+
+    &.orphaned {
+      background: color-mix(in srgb, var(--color-level-error) 10%, transparent);
+    }
   }
 
   .namespace-group {
@@ -94,9 +108,9 @@
     cursor: pointer;
 
     legend {
+      gap: 0.5rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
     }
 
     .fa-caret-down {
@@ -104,8 +118,8 @@
     }
 
     .count {
-      font-weight: normal;
       color: var(--color-text-secondary);
+      font-weight: normal;
     }
   }
 
@@ -114,12 +128,12 @@
   }
 
   .tab-search {
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
+    display: flex;
+    z-index: 1;
     position: sticky;
     top: 0;
-    z-index: 1;
+    align-items: center;
     padding: 0.25rem 0;
     background: var(--color-background);
 
@@ -133,8 +147,8 @@
   }
 
   table {
-    margin: 0;
     width: 100%;
+    margin: 0;
     table-layout: fixed;
 
     td,
@@ -154,8 +168,8 @@
 
   .col-btn {
     width: 1%;
-    white-space: nowrap;
     text-align: right;
+    white-space: nowrap;
   }
 
   .settings-table {
@@ -192,8 +206,8 @@
   }
 
   .data-types {
-    display: flex;
     gap: 0.5rem;
+    display: flex;
 
     i {
       opacity: 0.6;
@@ -201,17 +215,104 @@
   }
 
   .snoot-footer {
+    gap: 0.5rem;
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
     padding: 0.5rem 0;
     border-top: 1px solid var(--color-border);
   }
 
   .empty-state {
-    text-align: center;
     padding: 2rem;
     color: var(--color-text-secondary);
     font-style: italic;
+    text-align: center;
+  }
+
+  .how-to-content {
+    padding: 0.5rem 0.25rem 1rem;
+    line-height: 1.5;
+
+    h3 {
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin: 0.25rem 0 0.75rem;
+    }
+
+    .disclaimer {
+      gap: 0.75rem;
+      display: flex;
+      align-items: flex-start;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--color-level-error);
+      border-radius: 6px;
+      background: rgb(from var(--color-level-error) r g b / 10%);
+
+      i {
+        margin-top: 0.15rem;
+        color: var(--color-level-error);
+        font-size: 1.25rem;
+      }
+
+      p {
+        margin: 0.25rem 0 0;
+      }
+    }
+
+    .how-to-columns {
+      gap: 0 2rem;
+      grid-template-columns: 1fr 1fr;
+      display: grid;
+    }
+
+    dl.status-glossary,
+    dl.tabs-glossary {
+      gap: 0.5rem 1rem;
+      grid-template-columns: max-content 1fr;
+      display: grid;
+      margin: 0.25rem 0 0.5rem;
+
+      dt {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      dd {
+        margin: 0;
+      }
+    }
+
+    ol {
+      margin: 0.25rem 0 0.5rem 1.25rem;
+      padding: 0;
+
+      li {
+        margin: 0.25rem 0;
+      }
+    }
+  }
+}
+
+.theme-light .snoot {
+  .how-to-content {
+    dl.status-glossary dt,
+    dl.tabs-glossary dt {
+      color: var(--color-text-primary);
+      text-shadow: none;
+    }
+  }
+
+  .summary-card {
+    border-color: var(--color-warm-3);
+    color: var(--color-text-primary);
+    text-shadow: none;
+    background: none;
+
+    .card-label {
+      color: var(--color-text-secondary);
+    }
   }
 }

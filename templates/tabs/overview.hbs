@@ -1,28 +1,29 @@
 <section class="tab overview {{tab.cssClass}}" data-group="primary" data-tab="overview">
   {{!-- Summary Cards --}}
   <div class="summary-cards">
-    <div class="summary-card orphaned">
+    <div class="summary-card orphaned" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Card.OrphanedSettings"}}">
       <div class="card-top">
         <i class="fas fa-ghost"></i>
         <span class="card-value">{{totals.orphanedSettings}}</span>
       </div>
       <span class="card-label">{{localize "SNOOT.Overview.OrphanedSettings"}}</span>
     </div>
-    <div class="summary-card orphaned">
+    <div class="summary-card orphaned" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Card.OrphanedWorldFlags"}}">
       <div class="card-top">
         <i class="fas fa-flag"></i>
         <span class="card-value">{{totals.orphanedWorldFlags}}</span>
       </div>
       <span class="card-label">{{localize "SNOOT.Overview.OrphanedWorldFlags"}}</span>
     </div>
-    <div class="summary-card orphaned">
+    <div class="summary-card orphaned" data-tooltip
+      aria-label="{{localize "SNOOT.Tooltip.Card.OrphanedCompendiumFlags"}}">
       <div class="card-top">
         <i class="fas fa-atlas"></i>
         <span class="card-value">{{totals.orphanedCompendiumFlags}}</span>
       </div>
       <span class="card-label">{{localize "SNOOT.Overview.OrphanedCompendiumFlags"}}</span>
     </div>
-    <div class="summary-card stale">
+    <div class="summary-card stale" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Card.StaleSettings"}}">
       <div class="card-top">
         <i class="fas fa-hourglass-half"></i>
         <span class="card-value">{{totals.staleSettings}}</span>
@@ -35,33 +36,48 @@
   <h3>{{localize "SNOOT.Overview.ModuleList"}}</h3>
   <div class="tab-search">
     <i class="fas fa-search"></i>
-    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off">
+    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off"
+      data-tooltip aria-label="{{localize "SNOOT.Tooltip.Search"}}">
   </div>
   <table>
     <thead>
       <tr>
-        <th class="col-module">{{localize "SNOOT.Label.Module"}}</th>
-        <th class="col-fit">{{localize "SNOOT.Label.Status"}}</th>
-        <th class="col-fit">{{localize "SNOOT.Label.Data"}}</th>
-        <th class="col-btn"></th>
+        <th class="col-module" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Module"}}">
+          {{localize "SNOOT.Label.Module"}}
+        </th>
+        <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Status"}}">
+          {{localize "SNOOT.Label.Status"}}
+        </th>
+        <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Count"}}">
+          {{localize "SNOOT.Label.Count"}}
+        </th>
+        <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Data"}}">
+          {{localize "SNOOT.Label.Data"}}
+        </th>
+        <th class="col-btn" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Actions"}}"></th>
       </tr>
     </thead>
     <tbody>
       {{#each modules}}
-        <tr>
+        <tr class="status-row {{this.status}}">
           <td class="module-name">{{this.id}}</td>
-          <td><span class="tag badge {{this.badgeClass}}" title="{{this.statusHint}}">{{this.statusLabel}}</span></td>
+          <td><span class="tag badge {{this.badgeClass}}" data-tooltip
+              aria-label="{{this.statusHint}}">{{this.statusLabel}}</span></td>
+          <td class="entry-count">{{this.count}}</td>
           <td class="data-types">
-            {{#if this.hasSettings}}<i class="fas fa-cogs" title="{{localize "SNOOT.Tab.Settings"}}"></i>{{/if}}
-            {{#if this.hasWorldFlags}}<i class="fas fa-flag" title="{{localize "SNOOT.Tab.FlagsWorld"}}"></i>{{/if}}
-            {{#if this.hasCompendiumFlags}}<i class="fas fa-atlas"
-                title="{{localize "SNOOT.Tab.FlagsCompendiums"}}"></i>{{/if}}
-            {{#if this.hasStaleSettings}}<i class="fas fa-hourglass-half stale-icon"
-                title="{{localize "SNOOT.Overview.StaleSettings"}}"></i>{{/if}}
+            {{#if this.hasSettings}}<i class="fas fa-cogs" data-tooltip
+                aria-label="{{localize "SNOOT.Tooltip.Data.Settings"}}"></i>{{/if}}
+            {{#if this.hasWorldFlags}}<i class="fas fa-flag" data-tooltip
+                aria-label="{{localize "SNOOT.Tooltip.Data.WorldFlags"}}"></i>{{/if}}
+            {{#if this.hasCompendiumFlags}}<i class="fas fa-atlas" data-tooltip
+                aria-label="{{localize "SNOOT.Tooltip.Data.CompendiumFlags"}}"></i>{{/if}}
+            {{#if this.hasStaleSettings}}<i class="fas fa-hourglass-half stale-icon" data-tooltip
+                aria-label="{{localize "SNOOT.Tooltip.Data.Stale"}}"></i>{{/if}}
           </td>
           <td class="col-btn">
             {{#if this.canClean}}
-              <a data-action="cleanModule" data-module-id="{{this.id}}" title="{{localize "SNOOT.Action.CleanModule"}}">
+              <a data-action="cleanModule" data-module-id="{{this.id}}" data-tooltip
+                aria-label="{{localize "SNOOT.Action.CleanModule"}}">
                 <i class="fas fa-trash"></i>
               </a>
             {{/if}}
