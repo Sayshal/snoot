@@ -369,10 +369,17 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Clear the cached report and re-render.
+   * Prompt the user to rescan after a cleanup.
    * @private
    */
   async #invalidateAndRender() {
+    const rescan = await DialogV2.confirm({
+      window: { title: 'SNOOT.Confirm.Rescan.Title' },
+      content: game.i18n.localize('SNOOT.Confirm.Rescan.Content'),
+      yes: { label: 'SNOOT.Action.Rescan', default: true },
+      no: { label: 'SNOOT.Action.Skip' }
+    });
+    if (!rescan) return;
     this.#report = null;
     this.render();
   }
@@ -412,7 +419,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCleanModule(_event, target) {
     const moduleId = target.dataset.moduleId;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.CleanModule.Title') },
+      window: { title: 'SNOOT.Confirm.CleanModule.Title' },
       content: game.i18n.format('SNOOT.Confirm.CleanModule.Content', { module: moduleId })
     });
     if (!confirmed) return;
@@ -428,7 +435,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onCleanAllOrphaned(_event, _target) {
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.CleanAll.Title') },
+      window: { title: 'SNOOT.Confirm.CleanAll.Title' },
       content: game.i18n.localize('SNOOT.Confirm.CleanAll.Content')
     });
     if (!confirmed) return;
@@ -444,7 +451,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onCleanAllInactive(_event, _target) {
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.CleanInactive.Title') },
+      window: { title: 'SNOOT.Confirm.CleanInactive.Title' },
       content: game.i18n.localize('SNOOT.Confirm.CleanInactive.Content')
     });
     if (!confirmed) return;
@@ -460,7 +467,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onCleanAllStale(_event, _target) {
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.CleanStale.Title') },
+      window: { title: 'SNOOT.Confirm.CleanStale.Title' },
       content: game.i18n.localize('SNOOT.Confirm.CleanStale.Content')
     });
     if (!confirmed) return;
@@ -477,7 +484,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onDeleteSetting(_event, target) {
     const key = target.dataset.key;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.DeleteSetting.Title') },
+      window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
       content: game.i18n.format('SNOOT.Confirm.DeleteSetting.Content', { key })
     });
     if (!confirmed) return;
@@ -494,7 +501,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onDeleteModuleSettings(_event, target) {
     const namespace = target.dataset.namespace;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.DeleteModuleSettings.Title') },
+      window: { title: 'SNOOT.Confirm.DeleteModuleSettings.Title' },
       content: game.i18n.format('SNOOT.Confirm.DeleteModuleSettings.Content', { module: namespace })
     });
     if (!confirmed) return;
@@ -511,7 +518,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onRemoveScopeFlags(_event, target) {
     const scope = target.dataset.scope;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.RemoveScope.Title') },
+      window: { title: 'SNOOT.Confirm.RemoveScope.Title' },
       content: game.i18n.format('SNOOT.Confirm.RemoveScope.Content', { scope })
     });
     if (!confirmed) return;
@@ -529,11 +536,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { uuid, scope } = target.dataset;
     const doc = await fromUuid(uuid);
     if (!doc) {
-      ui.notifications.error(`Document not found: ${uuid}`);
+      ui.notifications.error('SNOOT.Notify.DocNotFound', { localize: true, format: { uuid } });
       return;
     }
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.RemoveDocFlag.Title') },
+      window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
       content: game.i18n.format('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: doc.name || uuid })
     });
     if (!confirmed) return;
@@ -550,7 +557,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onRemoveCompendiumScopeFlags(_event, target) {
     const scope = target.dataset.scope;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.RemoveCompendiumScope.Title') },
+      window: { title: 'SNOOT.Confirm.RemoveCompendiumScope.Title' },
       content: game.i18n.format('SNOOT.Confirm.RemoveCompendiumScope.Content', { scope })
     });
     if (!confirmed) return;
@@ -567,7 +574,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onRemoveCompendiumDocFlag(_event, target) {
     const { uuid, scope } = target.dataset;
     const confirmed = await DialogV2.confirm({
-      window: { title: game.i18n.localize('SNOOT.Confirm.RemoveDocFlag.Title') },
+      window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
       content: game.i18n.format('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })
     });
     if (!confirmed) return;

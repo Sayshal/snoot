@@ -34,7 +34,7 @@ export class DataSniffer {
       });
     }
     ui.notifications.clear();
-    ui.notifications.success(game.i18n.localize('SNOOT.Scan.Complete'), { duration: 3000 });
+    ui.notifications.success('SNOOT.Scan.Complete', { localize: true, duration: 3000 });
     DataSniffer.#warnOrphanedFlags(flags, compendiumFlags);
     return { settings, flags, compendiumFlags };
   }
@@ -46,7 +46,10 @@ export class DataSniffer {
    * @private
    */
   static #warnOrphanedFlags(worldFlags, compendiumFlags) {
-    for (const [type, scopes] of [['world', worldFlags], ['compendium', compendiumFlags]]) {
+    for (const [type, scopes] of [
+      ['world', worldFlags],
+      ['compendium', compendiumFlags]
+    ]) {
       for (const [scope, data] of Object.entries(scopes)) {
         if (data.status !== 'orphaned') continue;
         console.warn(`Snoot | Orphaned ${type} flag scope "${scope}" (${data.documents.length} documents)`);
@@ -236,24 +239,33 @@ export class DataSniffer {
     const setting = worldSettings.find((s) => s.key === key);
     if (!setting) {
       ui.notifications.clear();
-      ui.notifications.warn(`Setting "${key}" not found.`);
+      ui.notifications.warn('SNOOT.Notify.SettingNotFound', { localize: true, format: { key } });
       return;
     }
     await setting.delete();
     ui.notifications.clear();
-    ui.notifications.info(`Deleted setting: ${key}`);
+    ui.notifications.info('SNOOT.Notify.DeletedSetting', { localize: true, format: { key } });
   }
 
   /**
    * Delete all world settings for a given namespace.
    * @param {string} namespace - Module namespace to delete settings for.
+   * @param {object} [options] - Optional parameters.
+   * @param {boolean} [options.silent] - Suppress progress/info notifications.
    */
-  static async deleteSettingsForModule(namespace) {
+  static async deleteSettingsForModule(namespace, { silent = false } = {}) {
     const worldSettings = game.settings.storage.get('world');
     const toDelete = worldSettings.filter((s) => s.key.startsWith(`${namespace}.`));
-    for (const setting of toDelete) await setting.delete();
+    const progress = silent ? null : ui.notifications.info('SNOOT.Progress.DeletingSettings', { localize: true, progress: true });
+    let done = 0;
+    for (const setting of toDelete) {
+      await setting.delete();
+      done++;
+      progress?.update({ pct: toDelete.length ? done / toDelete.length : 1, message: setting.key });
+    }
+    if (silent) return;
     ui.notifications.clear();
-    ui.notifications.info(`Deleted ${toDelete.length} settings for "${namespace}".`);
+    ui.notifications.success('SNOOT.Notify.DeletedSettings', { localize: true, format: { count: toDelete.length, namespace }, duration: 3000 });
   }
 
   /**
@@ -264,25 +276,39 @@ export class DataSniffer {
   static async removeFlagsFromDocument(doc, scope) {
     await doc.update({ [`flags.-=${scope}`]: null });
     ui.notifications.clear();
-    ui.notifications.info(`Removed "${scope}" flags from ${doc.name || doc.uuid}.`);
+    ui.notifications.info('SNOOT.Notify.RemovedFlagsFrom', { localize: true, format: { scope, name: doc.name || doc.uuid } });
   }
 
   /**
    * Remove all flags of a scope from every flagged world document in the report.
    * @param {string} scope - Flag scope to remove.
    * @param {object} report - The scan report.
+   * @param {object} [options] - Optional parameters.
+   * @param {boolean} [options.silent] - Suppress progress/info notifications.
    */
-  static async removeFlagsForScope(scope, report) {
+  static async removeFlagsForScope(scope, report, { silent = false } = {}) {
     const entries = report.flags[scope]?.documents ?? [];
+    const total = entries.length;
+    const progress = silent ? null : ui.notifications.info('SNOOT.Progress.RemovingFlags', { localize: true, progress: true });
     let count = 0;
+    let done = 0;
     for (const entry of entries) {
       const doc = await fromUuid(entry.uuid);
-      if (!doc) continue;
+      done++;
+      if (!doc) {
+        progress?.update({ pct: total ? done / total : 1 });
+        continue;
+      }
       await doc.update({ [`flags.-=${scope}`]: null });
       count++;
+      progress?.update({
+        pct: total ? done / total : 1,
+        message: game.i18n.format('SNOOT.Progress.Doc', { name: doc.name || entry.uuid })
+      });
     }
+    if (silent) return;
     ui.notifications.clear();
-    ui.notifications.info(`Removed "${scope}" flags from ${count} documents.`);
+    ui.notifications.success('SNOOT.Notify.RemovedFlags', { localize: true, format: { scope, count }, duration: 3000 });
   }
 
   /**
@@ -294,7 +320,7 @@ export class DataSniffer {
     const doc = await fromUuid(uuid);
     if (!doc) {
       ui.notifications.clear();
-      ui.notifications.error(`Document not found: ${uuid}`);
+      ui.notifications.error('SNOOT.Notify.DocNotFound', { localize: true, format: { uuid } });
       return;
     }
     const pack = doc.compendium;
@@ -303,48 +329,100 @@ export class DataSniffer {
     await doc.update({ [`flags.-=${scope}`]: null });
     if (wasLocked) await pack.configure({ locked: true });
     ui.notifications.clear();
-    ui.notifications.info(`Removed "${scope}" flags from ${doc.name || uuid}.`);
+    ui.notifications.info('SNOOT.Notify.RemovedFlagsFrom', { localize: true, format: { scope, name: doc.name || uuid } });
   }
 
   /**
    * Remove all flags of a scope from every compendium document in the report. Handles pack lock/unlock.
    * @param {string} scope - Flag scope to remove.
    * @param {object} report - The scan report.
+   * @param {object} [options] - Optional parameters.
+   * @param {boolean} [options.silent] - Suppress progress/info notifications.
    */
-  static async removeCompendiumFlagsForScope(scope, report) {
+  static async removeCompendiumFlagsForScope(scope, report, { silent = false } = {}) {
     const entries = report.compendiumFlags[scope]?.documents ?? [];
     const byPack = {};
     for (const entry of entries) {
       if (!byPack[entry.packCollection]) byPack[entry.packCollection] = [];
       byPack[entry.packCollection].push(entry.uuid);
     }
+    const total = entries.length;
+    const progress = silent ? null : ui.notifications.info('SNOOT.Progress.RemovingCompendiumFlags', { localize: true, progress: true });
     let count = 0;
+    let done = 0;
     for (const [collection, uuids] of Object.entries(byPack)) {
       const pack = game.packs.get(collection);
-      if (!pack) continue;
+      if (!pack) {
+        done += uuids.length;
+        progress?.update({ pct: total ? done / total : 1 });
+        continue;
+      }
+      progress?.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Pack', { label: pack.metadata.label }) });
       const wasLocked = pack.locked;
       await pack.configure({ locked: false });
       for (const uuid of uuids) {
         const doc = await fromUuid(uuid);
-        if (!doc) continue;
+        done++;
+        if (!doc) {
+          progress?.update({ pct: total ? done / total : 1 });
+          continue;
+        }
         await doc.update({ [`flags.-=${scope}`]: null });
         count++;
+        progress?.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Doc', { name: doc.name || uuid }) });
       }
       if (wasLocked) await pack.configure({ locked: true });
     }
+    if (silent) return;
     ui.notifications.clear();
-    ui.notifications.info(`Removed "${scope}" flags from ${count} compendium documents.`);
+    ui.notifications.success('SNOOT.Notify.RemovedCompendiumFlags', { localize: true, format: { scope, count }, duration: 3000 });
   }
 
   /**
    * Clean all data (settings, world flags, compendium flags) for a single module.
    * @param {string} moduleId - Module namespace to clean.
    * @param {object} report - The scan report.
+   * @param {object} [options] - Optional parameters.
+   * @param {boolean} [options.silent] - Suppress progress/info notifications.
    */
-  static async cleanModule(moduleId, report) {
-    await DataSniffer.deleteSettingsForModule(moduleId);
-    if (report.flags[moduleId]) await DataSniffer.removeFlagsForScope(moduleId, report);
-    if (report.compendiumFlags[moduleId]) await DataSniffer.removeCompendiumFlagsForScope(moduleId, report);
+  static async cleanModule(moduleId, report, { silent = false } = {}) {
+    const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
+    progress?.update({ pct: 0, message: game.i18n.localize('SNOOT.Progress.Stage.Settings') });
+    await DataSniffer.deleteSettingsForModule(moduleId, { silent: true });
+    progress?.update({ pct: 0.34, message: game.i18n.localize('SNOOT.Progress.Stage.WorldFlags') });
+    if (report.flags[moduleId]) await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true });
+    progress?.update({ pct: 0.67, message: game.i18n.localize('SNOOT.Progress.Stage.CompendiumFlags') });
+    if (report.compendiumFlags[moduleId]) await DataSniffer.removeCompendiumFlagsForScope(moduleId, report, { silent: true });
+    progress?.update({ pct: 1 });
+    if (silent) return;
+    ui.notifications.clear();
+    ui.notifications.success('SNOOT.Notify.CleanedModule', { localize: true, format: { module: moduleId }, duration: 3000 });
+  }
+
+  /**
+   * Clean all data for every namespace of a given status in the report.
+   * @param {object} report - The scan report.
+   * @param {'orphaned'|'inactive'} status - Status to filter by.
+   * @param {string} startMessageKey - Localization key for the initial progress message.
+   * @param {string} completeMessageKey - Localization key for the final success notification.
+   * @private
+   */
+  static async #cleanAllByStatus(report, status, startMessageKey, completeMessageKey) {
+    const namespaces = new Set();
+    for (const [ns, data] of Object.entries(report.settings)) if (data.status === status) namespaces.add(ns);
+    for (const [ns, data] of Object.entries(report.flags)) if (data.status === status) namespaces.add(ns);
+    for (const [ns, data] of Object.entries(report.compendiumFlags)) if (data.status === status) namespaces.add(ns);
+    const total = namespaces.size;
+    const progress = ui.notifications.info(startMessageKey, { localize: true, progress: true });
+    let done = 0;
+    for (const ns of namespaces) {
+      progress.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Module', { module: ns }) });
+      await DataSniffer.cleanModule(ns, report, { silent: true });
+      done++;
+    }
+    progress.update({ pct: 1 });
+    ui.notifications.clear();
+    ui.notifications.success(completeMessageKey, { localize: true, format: { count: total }, duration: 3000 });
   }
 
   /**
@@ -352,13 +430,7 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    */
   static async cleanAllOrphaned(report) {
-    const orphanedNamespaces = new Set();
-    for (const [ns, data] of Object.entries(report.settings)) if (data.status === 'orphaned') orphanedNamespaces.add(ns);
-    for (const [ns, data] of Object.entries(report.flags)) if (data.status === 'orphaned') orphanedNamespaces.add(ns);
-    for (const [ns, data] of Object.entries(report.compendiumFlags)) if (data.status === 'orphaned') orphanedNamespaces.add(ns);
-    for (const ns of orphanedNamespaces) await DataSniffer.cleanModule(ns, report);
-    ui.notifications.clear();
-    ui.notifications.info(`Cleaned ${orphanedNamespaces.size} orphaned modules.`);
+    await DataSniffer.#cleanAllByStatus(report, 'orphaned', 'SNOOT.Progress.CleaningOrphaned', 'SNOOT.Notify.CleanedOrphaned');
   }
 
   /**
@@ -366,13 +438,7 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    */
   static async cleanAllInactive(report) {
-    const inactiveNamespaces = new Set();
-    for (const [ns, data] of Object.entries(report.settings)) if (data.status === 'inactive') inactiveNamespaces.add(ns);
-    for (const [ns, data] of Object.entries(report.flags)) if (data.status === 'inactive') inactiveNamespaces.add(ns);
-    for (const [ns, data] of Object.entries(report.compendiumFlags)) if (data.status === 'inactive') inactiveNamespaces.add(ns);
-    for (const ns of inactiveNamespaces) await DataSniffer.cleanModule(ns, report);
-    ui.notifications.clear();
-    ui.notifications.info(`Cleaned ${inactiveNamespaces.size} inactive modules.`);
+    await DataSniffer.#cleanAllByStatus(report, 'inactive', 'SNOOT.Progress.CleaningInactive', 'SNOOT.Notify.CleanedInactive');
   }
 
   /**
@@ -380,19 +446,23 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    */
   static async cleanAllStale(report) {
+    const stale = [];
+    for (const [, data] of Object.entries(report.settings)) for (const entry of data.entries) if (entry.isStale) stale.push(entry);
+    const total = stale.length;
+    const progress = ui.notifications.info('SNOOT.Progress.CleaningStale', { localize: true, progress: true });
+    const worldSettings = game.settings.storage.get('world');
     let count = 0;
-    for (const [, data] of Object.entries(report.settings)) {
-      for (const entry of data.entries) {
-        if (!entry.isStale) continue;
-        const worldSettings = game.settings.storage.get('world');
-        const setting = worldSettings.find((s) => s.key === entry.key);
-        if (setting) {
-          await setting.delete();
-          count++;
-        }
+    let done = 0;
+    for (const entry of stale) {
+      const setting = worldSettings.find((s) => s.key === entry.key);
+      done++;
+      if (setting) {
+        await setting.delete();
+        count++;
       }
+      progress.update({ pct: total ? done / total : 1, message: entry.key });
     }
     ui.notifications.clear();
-    ui.notifications.info(`Deleted ${count} stale settings.`);
+    ui.notifications.success('SNOOT.Notify.DeletedStale', { localize: true, format: { count }, duration: 3000 });
   }
 }

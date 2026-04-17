@@ -97,6 +97,7 @@
       "CleanAllInactive": "Clean All Inactive",
       "CleanAllStale": "Clean All Stale",
       "Rescan": "Rescan",
+      "Skip": "Skip",
       "Delete": "Delete",
       "DeleteAll": "Delete All",
       "Remove": "Remove",
@@ -138,6 +139,10 @@
       "RemoveDocFlag": {
         "Title": "Remove Document Flag",
         "Content": "Remove <strong>{scope}</strong> flags from <strong>{name}</strong>? This cannot be undone."
+      },
+      "Rescan": {
+        "Title": "Rescan After Cleanup?",
+        "Content": "Rescan world and compendium data to refresh the display? Declining leaves the current view showing stale data until you click Rescan manually."
       }
     },
     "Scan": {
@@ -146,6 +151,37 @@
       "WorldFlags": "Scanned world documents",
       "Pack": "Scanning pack: {label}",
       "Complete": "Scan complete!"
+    },
+    "Progress": {
+      "CleaningModule": "Cleaning module…",
+      "CleaningOrphaned": "Cleaning orphaned modules…",
+      "CleaningInactive": "Cleaning inactive modules…",
+      "CleaningStale": "Deleting stale settings…",
+      "RemovingFlags": "Removing world flags…",
+      "RemovingCompendiumFlags": "Removing compendium flags…",
+      "DeletingSettings": "Deleting settings…",
+      "Complete": "Done.",
+      "Module": "Cleaning: {module}",
+      "Doc": "Document: {name}",
+      "Pack": "Pack: {label}",
+      "Stage": {
+        "Settings": "Settings",
+        "WorldFlags": "World flags",
+        "CompendiumFlags": "Compendium flags"
+      }
+    },
+    "Notify": {
+      "SettingNotFound": "Setting \"{key}\" not found.",
+      "DeletedSetting": "Deleted setting: {key}",
+      "DeletedSettings": "Deleted {count} settings for \"{namespace}\".",
+      "RemovedFlagsFrom": "Removed \"{scope}\" flags from {name}.",
+      "RemovedFlags": "Removed \"{scope}\" flags from {count} documents.",
+      "RemovedCompendiumFlags": "Removed \"{scope}\" flags from {count} compendium documents.",
+      "DocNotFound": "Document not found: {uuid}",
+      "CleanedModule": "Cleaned module \"{module}\".",
+      "CleanedOrphaned": "Cleaned {count} orphaned modules.",
+      "CleanedInactive": "Cleaned {count} inactive modules.",
+      "DeletedStale": "Deleted {count} stale settings."
     },
     "Search": {
       "Placeholder": "Search\u2026"

@@ -20,7 +20,7 @@
   "download": "",
   "compatibility": {
     "minimum": "13",
-    "verified": "13"
+    "verified": "14.361"
   },
   "esmodules": [
     "scripts/snoot.mjs"
@@ -37,8 +37,17 @@
   ],
   "flags": {
     "hotReload": {
-      "extensions": ["css", "html", "hbs", "json"],
-      "paths": ["styles", "lang", "templates"]
+      "extensions": [
+        "css",
+        "html",
+        "hbs",
+        "json"
+      ],
+      "paths": [
+        "styles",
+        "lang",
+        "templates"
+      ]
     }
   }
 }
