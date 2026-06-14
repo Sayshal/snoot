@@ -2,7 +2,7 @@
   "id": "snoot",
   "title": "Snoot",
   "version": "0.1.0",
-  "description": "Snoot sniffs out world documents, compendium data, module settings, and flags left behind by modules so you can inspect and clean up orphaned data.",
+  "description": "Uninstalled a module but its settings and flags are still cluttering your world? Snoot sniffs them out. It scans your documents and compendiums for orphaned data from modules that are gone or disabled, then groups it all by module so you can spot what's stale and clear it out in bulk.",
   "authors": [
     {
       "name": "Tyler",
