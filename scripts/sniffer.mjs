@@ -274,9 +274,69 @@ export class DataSniffer {
    * @param {string} scope - Flag scope to remove.
    */
   static async removeFlagsFromDocument(doc, scope) {
-    await doc.update({ [`flags.-=${scope}`]: null });
+    await doc.update({ flags: { [scope]: _del } });
     ui.notifications.clear();
     ui.notifications.info('SNOOT.Notify.RemovedFlagsFrom', { localize: true, format: { scope, name: doc.name || doc.uuid } });
+  }
+
+  /**
+   * Batch-remove a flag scope from resolved documents, grouped into one write per collection.
+   * @param {Document[]} docs - Resolved documents to update.
+   * @param {string} scope - Flag scope to remove.
+   * @returns {Promise<number>} Count of documents updated.
+   * @private
+   */
+  static async #removeFlagFromDocuments(docs, scope) {
+    const topLevel = new Map();
+    const embedded = new Map();
+    for (const doc of docs) {
+      const update = { _id: doc.id, flags: { [scope]: _del } };
+      if (doc.parent) {
+        const key = `${doc.parent.uuid}|${doc.documentName}`;
+        if (!embedded.has(key)) embedded.set(key, { parent: doc.parent, name: doc.documentName, updates: [] });
+        embedded.get(key).updates.push(update);
+      } else {
+        const key = `${doc.documentName}|${doc.pack ?? ''}`;
+        if (!topLevel.has(key)) topLevel.set(key, { cls: doc.constructor, pack: doc.pack ?? null, updates: [] });
+        topLevel.get(key).updates.push(update);
+      }
+    }
+    let count = 0;
+    for (const { cls, pack, updates } of topLevel.values()) {
+      try {
+        await cls.updateDocuments(updates, pack ? { pack } : {});
+        count += updates.length;
+      } catch (err) {
+        console.error(`Snoot | Failed to remove "${scope}" flags from ${updates.length} ${cls.documentName} document(s)`, err);
+      }
+    }
+    for (const { parent, name, updates } of embedded.values()) {
+      try {
+        await parent.updateEmbeddedDocuments(name, updates);
+        count += updates.length;
+      } catch (err) {
+        console.error(`Snoot | Failed to remove "${scope}" flags from ${updates.length} embedded ${name} document(s) on ${parent.uuid}`, err);
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Drop a flag scope from a pack's cached in-memory index so a rescan reflects the deletion.
+   * @param {object} pack - The compendium pack.
+   * @param {Document[]} docs - Documents whose flags were just removed.
+   * @param {string} scope - Flag scope that was removed.
+   * @private
+   */
+  static #purgeIndexFlag(pack, docs, scope) {
+    for (const doc of docs) {
+      if (doc.parent) {
+        const child = pack.index.get(doc.parent.id)?.[doc.collectionName]?.find((c) => c._id === doc.id);
+        delete child?.flags?.[scope];
+      } else {
+        delete pack.index.get(doc.id)?.flags?.[scope];
+      }
+    }
   }
 
   /**
@@ -288,24 +348,14 @@ export class DataSniffer {
    */
   static async removeFlagsForScope(scope, report, { silent = false } = {}) {
     const entries = report.flags[scope]?.documents ?? [];
-    const total = entries.length;
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.RemovingFlags', { localize: true, progress: true });
-    let count = 0;
-    let done = 0;
+    const docs = [];
     for (const entry of entries) {
       const doc = await fromUuid(entry.uuid);
-      done++;
-      if (!doc) {
-        progress?.update({ pct: total ? done / total : 1 });
-        continue;
-      }
-      await doc.update({ [`flags.-=${scope}`]: null });
-      count++;
-      progress?.update({
-        pct: total ? done / total : 1,
-        message: game.i18n.format('SNOOT.Progress.Doc', { name: doc.name || entry.uuid })
-      });
+      if (doc) docs.push(doc);
     }
+    const count = await DataSniffer.#removeFlagFromDocuments(docs, scope);
+    progress?.update({ pct: 1 });
     if (silent) return;
     ui.notifications.clear();
     ui.notifications.success('SNOOT.Notify.RemovedFlags', { localize: true, format: { scope, count }, duration: 3000 });
@@ -326,7 +376,7 @@ export class DataSniffer {
     const pack = doc.compendium;
     const wasLocked = pack.locked;
     await pack.configure({ locked: false });
-    await doc.update({ [`flags.-=${scope}`]: null });
+    await doc.update({ flags: { [scope]: _del } });
     if (wasLocked) await pack.configure({ locked: true });
     ui.notifications.clear();
     ui.notifications.info('SNOOT.Notify.RemovedFlagsFrom', { localize: true, format: { scope, name: doc.name || uuid } });
@@ -346,31 +396,28 @@ export class DataSniffer {
       if (!byPack[entry.packCollection]) byPack[entry.packCollection] = [];
       byPack[entry.packCollection].push(entry.uuid);
     }
-    const total = entries.length;
+    const packEntries = Object.entries(byPack);
+    const total = packEntries.length;
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.RemovingCompendiumFlags', { localize: true, progress: true });
     let count = 0;
     let done = 0;
-    for (const [collection, uuids] of Object.entries(byPack)) {
+    for (const [collection, uuids] of packEntries) {
       const pack = game.packs.get(collection);
+      done++;
       if (!pack) {
-        done += uuids.length;
         progress?.update({ pct: total ? done / total : 1 });
         continue;
       }
       progress?.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Pack', { label: pack.metadata.label }) });
       const wasLocked = pack.locked;
       await pack.configure({ locked: false });
+      const docs = [];
       for (const uuid of uuids) {
         const doc = await fromUuid(uuid);
-        done++;
-        if (!doc) {
-          progress?.update({ pct: total ? done / total : 1 });
-          continue;
-        }
-        await doc.update({ [`flags.-=${scope}`]: null });
-        count++;
-        progress?.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Doc', { name: doc.name || uuid }) });
+        if (doc) docs.push(doc);
       }
+      count += await DataSniffer.#removeFlagFromDocuments(docs, scope);
+      DataSniffer.#purgeIndexFlag(pack, docs, scope);
       if (wasLocked) await pack.configure({ locked: true });
     }
     if (silent) return;

@@ -19,7 +19,7 @@
   "manifest": "https://github.com/Sayshal/snoot/releases/latest/download/module.json",
   "download": "",
   "compatibility": {
-    "minimum": "13",
+    "minimum": "14",
     "verified": "14.363"
   },
   "esmodules": [
