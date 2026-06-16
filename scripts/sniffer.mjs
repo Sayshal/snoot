@@ -30,7 +30,7 @@ export class DataSniffer {
       completed++;
       progress.update({
         pct: completed / packCount,
-        message: game.i18n.format('SNOOT.Scan.Pack', { label: pack.metadata.label })
+        message: _loc('SNOOT.Scan.Pack', { label: pack.metadata.label })
       });
     }
     ui.notifications.clear();
@@ -408,7 +408,7 @@ export class DataSniffer {
         progress?.update({ pct: total ? done / total : 1 });
         continue;
       }
-      progress?.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Pack', { label: pack.metadata.label }) });
+      progress?.update({ pct: total ? done / total : 1, message: _loc('SNOOT.Progress.Pack', { label: pack.metadata.label }) });
       const wasLocked = pack.locked;
       await pack.configure({ locked: false });
       const docs = [];
@@ -434,11 +434,11 @@ export class DataSniffer {
    */
   static async cleanModule(moduleId, report, { silent = false } = {}) {
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
-    progress?.update({ pct: 0, message: game.i18n.localize('SNOOT.Progress.Stage.Settings') });
+    progress?.update({ pct: 0, message: _loc('SNOOT.Progress.Stage.Settings') });
     await DataSniffer.deleteSettingsForModule(moduleId, { silent: true });
-    progress?.update({ pct: 0.34, message: game.i18n.localize('SNOOT.Progress.Stage.WorldFlags') });
+    progress?.update({ pct: 0.34, message: _loc('SNOOT.Progress.Stage.WorldFlags') });
     if (report.flags[moduleId]) await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true });
-    progress?.update({ pct: 0.67, message: game.i18n.localize('SNOOT.Progress.Stage.CompendiumFlags') });
+    progress?.update({ pct: 0.67, message: _loc('SNOOT.Progress.Stage.CompendiumFlags') });
     if (report.compendiumFlags[moduleId]) await DataSniffer.removeCompendiumFlagsForScope(moduleId, report, { silent: true });
     progress?.update({ pct: 1 });
     if (silent) return;
@@ -463,7 +463,7 @@ export class DataSniffer {
     const progress = ui.notifications.info(startMessageKey, { localize: true, progress: true });
     let done = 0;
     for (const ns of namespaces) {
-      progress.update({ pct: total ? done / total : 1, message: game.i18n.format('SNOOT.Progress.Module', { module: ns }) });
+      progress.update({ pct: total ? done / total : 1, message: _loc('SNOOT.Progress.Module', { module: ns }) });
       await DataSniffer.cleanModule(ns, report, { silent: true });
       done++;
     }

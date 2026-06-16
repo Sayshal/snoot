@@ -82,8 +82,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const moduleMap = {};
     const addModule = (ns, data, type, n) => {
       if (!moduleMap[ns]) {
-        const statusLabel = game.i18n.localize(`SNOOT.Status.${data.status}`);
-        const statusHint = game.i18n.localize(`SNOOT.StatusHint.${data.status}`);
+        const statusLabel = _loc(`SNOOT.Status.${data.status}`);
+        const statusHint = _loc(`SNOOT.StatusHint.${data.status}`);
         moduleMap[ns] = {
           id: ns,
           status: data.status,
@@ -132,7 +132,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         namespace: ns,
         status: data.status,
-        statusLabel: game.i18n.localize(`SNOOT.Status.${data.status}`),
+        statusLabel: _loc(`SNOOT.Status.${data.status}`),
         badgeClass: BADGE_CLASS[data.status],
         canClean: !['active', 'system'].includes(data.status),
         hasStale: staleCount > 0,
@@ -143,7 +143,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const worldFlagsGroups = Object.entries(report.flags).map(([scope, data]) => ({
       scope,
       status: data.status,
-      statusLabel: game.i18n.localize(`SNOOT.Status.${data.status}`),
+      statusLabel: _loc(`SNOOT.Status.${data.status}`),
       badgeClass: BADGE_CLASS[data.status],
       canClean: !['active', 'system'].includes(data.status),
       count: data.documents.length
@@ -151,7 +151,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const compendiumFlagsGroups = Object.entries(report.compendiumFlags).map(([scope, data]) => ({
       scope,
       status: data.status,
-      statusLabel: game.i18n.localize(`SNOOT.Status.${data.status}`),
+      statusLabel: _loc(`SNOOT.Status.${data.status}`),
       badgeClass: BADGE_CLASS[data.status],
       canClean: !['active', 'system'].includes(data.status),
       count: data.documents.length
@@ -205,9 +205,9 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #settingRowHtml(entry) {
     const esc = foundry.utils.escapeHTML;
     const stale = entry.isStale ? 'stale-row' : '';
-    const tip = esc(game.i18n.localize(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
+    const tip = esc(_loc(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
     const iconClass = entry.isStale ? 'fa-times-circle stale-icon' : 'fa-check-circle registered-icon';
-    const del = esc(game.i18n.localize('SNOOT.Action.Delete'));
+    const del = esc(_loc('SNOOT.Action.Delete'));
     return `<tr class="${stale}"><td class="setting-key"><code>${esc(entry.settingKey)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="deleteSetting" data-key="${esc(entry.key)}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
 
@@ -220,7 +220,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #worldFlagRowHtml(doc, scope) {
     const esc = foundry.utils.escapeHTML;
-    const remove = esc(game.i18n.localize('SNOOT.Action.Remove'));
+    const remove = esc(_loc('SNOOT.Action.Remove'));
     const keys = esc(doc.flagKeys.join(', '));
     return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
@@ -234,7 +234,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #compendiumFlagRowHtml(doc, scope) {
     const esc = foundry.utils.escapeHTML;
-    const remove = esc(game.i18n.localize('SNOOT.Action.Remove'));
+    const remove = esc(_loc('SNOOT.Action.Remove'));
     const keys = esc(doc.flagKeys.join(', '));
     return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="pack-label">${esc(doc.packLabel)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeCompendiumDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
@@ -375,7 +375,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async #invalidateAndRender() {
     const rescan = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.Rescan.Title' },
-      content: game.i18n.localize('SNOOT.Confirm.Rescan.Content'),
+      content: _loc('SNOOT.Confirm.Rescan.Content'),
       yes: { label: 'SNOOT.Action.Rescan', default: true },
       no: { label: 'SNOOT.Action.Skip' }
     });
@@ -420,7 +420,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const moduleId = target.dataset.moduleId;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.CleanModule.Title' },
-      content: game.i18n.format('SNOOT.Confirm.CleanModule.Content', { module: moduleId })
+      content: _loc('SNOOT.Confirm.CleanModule.Content', { module: moduleId })
     });
     if (!confirmed) return;
     await DataSniffer.cleanModule(moduleId, this.#report);
@@ -436,7 +436,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCleanAllOrphaned(_event, _target) {
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.CleanAll.Title' },
-      content: game.i18n.localize('SNOOT.Confirm.CleanAll.Content')
+      content: _loc('SNOOT.Confirm.CleanAll.Content')
     });
     if (!confirmed) return;
     await DataSniffer.cleanAllOrphaned(this.#report);
@@ -452,7 +452,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCleanAllInactive(_event, _target) {
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.CleanInactive.Title' },
-      content: game.i18n.localize('SNOOT.Confirm.CleanInactive.Content')
+      content: _loc('SNOOT.Confirm.CleanInactive.Content')
     });
     if (!confirmed) return;
     await DataSniffer.cleanAllInactive(this.#report);
@@ -468,7 +468,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCleanAllStale(_event, _target) {
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.CleanStale.Title' },
-      content: game.i18n.localize('SNOOT.Confirm.CleanStale.Content')
+      content: _loc('SNOOT.Confirm.CleanStale.Content')
     });
     if (!confirmed) return;
     await DataSniffer.cleanAllStale(this.#report);
@@ -485,7 +485,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const key = target.dataset.key;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
-      content: game.i18n.format('SNOOT.Confirm.DeleteSetting.Content', { key })
+      content: _loc('SNOOT.Confirm.DeleteSetting.Content', { key })
     });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key);
@@ -502,7 +502,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const namespace = target.dataset.namespace;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.DeleteModuleSettings.Title' },
-      content: game.i18n.format('SNOOT.Confirm.DeleteModuleSettings.Content', { module: namespace })
+      content: _loc('SNOOT.Confirm.DeleteModuleSettings.Content', { module: namespace })
     });
     if (!confirmed) return;
     await DataSniffer.deleteSettingsForModule(namespace);
@@ -519,7 +519,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const scope = target.dataset.scope;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.RemoveScope.Title' },
-      content: game.i18n.format('SNOOT.Confirm.RemoveScope.Content', { scope })
+      content: _loc('SNOOT.Confirm.RemoveScope.Content', { scope })
     });
     if (!confirmed) return;
     await DataSniffer.removeFlagsForScope(scope, this.#report);
@@ -541,7 +541,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
-      content: game.i18n.format('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: doc.name || uuid })
+      content: _loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: doc.name || uuid })
     });
     if (!confirmed) return;
     await DataSniffer.removeFlagsFromDocument(doc, scope);
@@ -558,7 +558,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const scope = target.dataset.scope;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.RemoveCompendiumScope.Title' },
-      content: game.i18n.format('SNOOT.Confirm.RemoveCompendiumScope.Content', { scope })
+      content: _loc('SNOOT.Confirm.RemoveCompendiumScope.Content', { scope })
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumFlagsForScope(scope, this.#report);
@@ -575,7 +575,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { uuid, scope } = target.dataset;
     const confirmed = await DialogV2.confirm({
       window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
-      content: game.i18n.format('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })
+      content: _loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumDocFlag(uuid, scope);
