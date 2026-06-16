@@ -8,7 +8,7 @@
 
 ## Supporting The Module
 
-[![Discord](https://dcbadge.limes.pink/api/server/PzzUwU9gdz)](https://discord.gg/PzzUwU9gdz)
+[![Discord](https://dcbadge.limes.pink/api/server/feMsefha8D)](https://discord.gg/feMsefha8D)
 
 ## Introduction
 
