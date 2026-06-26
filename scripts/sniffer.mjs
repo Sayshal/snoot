@@ -331,7 +331,8 @@ export class DataSniffer {
   static #purgeIndexFlag(pack, docs, scope) {
     for (const doc of docs) {
       if (doc.parent) {
-        const child = pack.index.get(doc.parent.id)?.[doc.collectionName]?.find((c) => c._id === doc.id);
+        const collection = pack.index.get(doc.parent.id)?.[doc.collectionName];
+        const child = Array.isArray(collection) ? collection.find((c) => c._id === doc.id) : null;
         delete child?.flags?.[scope];
       } else {
         delete pack.index.get(doc.id)?.flags?.[scope];
