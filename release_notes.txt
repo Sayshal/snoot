@@ -1,14 +1,4 @@
-Snoot 1.0
-
-Breaking Changes
-- Raised the minimum Foundry version to V14.
+Snoot 1.1
 
 Bug Fixes
-- A single failing document no longer aborts the rest of a cleanup sweep.
-- Compendium flag removals now reflect immediately on rescan instead of requiring a world reload or repeated runs.
-- Flag cleanup no longer stalls on worlds with many flagged documents.
-
-Changes
-- Migrated localization to the V14 _loc API.
-- Refreshed the module description.
-- Verified compatibility with Foundry V14.363.
+- "Clean All" no longer freezes partway through when a compendium index holds embedded documents in a non-array shape.
