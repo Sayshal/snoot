@@ -25,7 +25,7 @@ export class DataSniffer {
       try {
         await DataSniffer.#scanPack(pack, knownScopes, hiddenScopes, compendiumFlags);
       } catch (err) {
-        console.warn(`Snoot | Failed to scan pack "${pack.metadata.label}":`, err);
+        ATLAS.log(2, `Failed to scan pack "${pack.metadata.label}":`, err);
       }
       completed++;
       progress.update({
@@ -52,7 +52,7 @@ export class DataSniffer {
     ]) {
       for (const [scope, data] of Object.entries(scopes)) {
         if (data.status !== 'orphaned') continue;
-        console.warn(`Snoot | Orphaned ${type} flag scope "${scope}" (${data.documents.length} documents)`);
+        ATLAS.log(2, `Orphaned ${type} flag scope "${scope}" (${data.documents.length} documents)`);
       }
     }
   }
@@ -192,15 +192,15 @@ export class DataSniffer {
     const fields = ['flags'];
     for (const name of embeddedNames) fields.push(`${name}.flags`, `${name}.name`);
     const index = await pack.getIndex({ fields });
-    console.debug(`Snoot | Pack "${pack.metadata.label}" (${pack.collection}) -${index.size} entries, fields: [${fields}]`);
+    ATLAS.log(3, `Pack "${pack.metadata.label}" (${pack.collection}) -${index.size} entries, fields: [${fields}]`);
     for (const entry of index) {
-      if (entry.flags && Object.keys(entry.flags).length) console.debug(`Snoot |   [${pack.documentName}] ${entry.name} -flag scopes: [${Object.keys(entry.flags)}]`);
+      if (entry.flags && Object.keys(entry.flags).length) ATLAS.log(3, `  [${pack.documentName}] ${entry.name} -flag scopes: [${Object.keys(entry.flags)}]`);
       DataSniffer.#processCompendiumEntry(entry, pack.documentName, entry.uuid, pack, knownScopes, hiddenScopes, byScope);
       for (const name of embeddedNames) {
         if (!entry[name]?.length) continue;
         const childType = hierarchy[name].model.documentName;
         for (const child of entry[name]) {
-          if (child.flags && Object.keys(child.flags).length) console.debug(`Snoot |     [${childType}] ${child.name || child._id} on "${entry.name}" -flag scopes: [${Object.keys(child.flags)}]`);
+          if (child.flags && Object.keys(child.flags).length) ATLAS.log(3, `    [${childType}] ${child.name || child._id} on "${entry.name}" -flag scopes: [${Object.keys(child.flags)}]`);
           const childUuid = `${entry.uuid}.${childType}.${child._id}`;
           DataSniffer.#processCompendiumEntry(child, childType, childUuid, pack, knownScopes, hiddenScopes, byScope);
         }
@@ -307,7 +307,7 @@ export class DataSniffer {
         await cls.updateDocuments(updates, pack ? { pack } : {});
         count += updates.length;
       } catch (err) {
-        console.error(`Snoot | Failed to remove "${scope}" flags from ${updates.length} ${cls.documentName} document(s)`, err);
+        ATLAS.log(1, `Failed to remove "${scope}" flags from ${updates.length} ${cls.documentName} document(s)`, err);
       }
     }
     for (const { parent, name, updates } of embedded.values()) {
@@ -315,7 +315,7 @@ export class DataSniffer {
         await parent.updateEmbeddedDocuments(name, updates);
         count += updates.length;
       } catch (err) {
-        console.error(`Snoot | Failed to remove "${scope}" flags from ${updates.length} embedded ${name} document(s) on ${parent.uuid}`, err);
+        ATLAS.log(1, `Failed to remove "${scope}" flags from ${updates.length} embedded ${name} document(s) on ${parent.uuid}`, err);
       }
     }
     return count;
