@@ -1,4 +1,10 @@
-Snoot 1.1
+## Breaking Changes
 
-Bug Fixes
-- "Clean All" no longer freezes partway through when a compendium index holds embedded documents in a non-array shape.
+- Snoot now requires the 3DS:ATLAS module. Foundry prompts to install and enable ATLAS as a dependency, and Snoot will not load without it.
+
+## Changes
+
+- Bumped the bug-report template's version placeholders to Foundry 14.364 and dnd5e 6.0.0.
+- Snoot's interface text and console logging now come from ATLAS. The bundled English language file was removed and localization is centralized in ATLAS.
+- Standardized the GitHub issue templates on canonical type labels.
+- Verified Foundry compatibility raised to 14.364.
