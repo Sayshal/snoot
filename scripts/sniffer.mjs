@@ -9,12 +9,14 @@ import { MODULE, SETTINGS } from './constants.mjs';
 /** Scans world data and cleans up orphaned module traces. */
 export class DataSniffer {
   /**
-   * Run a full scan of settings, world flags, and compendium flags.
-   * @returns {Promise<object>} Complete scan report with settings, flags, and compendiumFlags keys.
+   * Run a full scan of settings, world flags, compendium flags, and user-scoped data.
+   * @returns {Promise<object>} Complete scan report with settings, flags, compendiumFlags, and users keys.
    */
   static async scan() {
     const knownScopes = DataSniffer.#buildKnownScopes();
     const hiddenScopes = DataSniffer.#buildHiddenScopes();
+    const users = DataSniffer.#scanUserData(knownScopes, hiddenScopes);
+    if (!game.user.isGM) return { settings: {}, flags: {}, compendiumFlags: {}, users };
     const progress = ui.notifications.info('SNOOT.Scan.Start', { localize: true, progress: true });
     const settings = DataSniffer.#scanSettings(knownScopes, hiddenScopes);
     const flags = DataSniffer.#scanFlags(knownScopes, hiddenScopes);
@@ -36,7 +38,7 @@ export class DataSniffer {
     ui.notifications.clear();
     ui.notifications.success('SNOOT.Scan.Complete', { localize: true, duration: 3000 });
     DataSniffer.#warnOrphanedFlags(flags, compendiumFlags);
-    return { settings, flags, compendiumFlags };
+    return { settings, flags, compendiumFlags, users };
   }
 
   /**
@@ -106,7 +108,33 @@ export class DataSniffer {
   }
 
   /**
-   * Scan world settings storage, grouped by module namespace.
+   * Parse a stored setting into a report entry.
+   * @param {string} key - Full setting key, e.g. 'module-id.settingName'.
+   * @param {string} rawValue - Serialized setting value.
+   * @returns {object|null} Parsed entry, or null if the key has no namespace.
+   * @private
+   */
+  static #parseSettingEntry(key, rawValue) {
+    const dotIndex = key.indexOf('.');
+    if (dotIndex === -1) return null;
+    let parsedValue;
+    try {
+      parsedValue = JSON.parse(rawValue);
+    } catch {
+      parsedValue = rawValue;
+    }
+    return {
+      key,
+      namespace: key.substring(0, dotIndex),
+      settingKey: key.substring(dotIndex + 1),
+      value: parsedValue,
+      displayValue: JSON.stringify(parsedValue),
+      isStale: !DataSniffer.#isSettingRegistered(key)
+    };
+  }
+
+  /**
+   * Scan world settings storage, grouped by module namespace. User-scoped settings are excluded.
    * @param {Set<string>} knownScopes - All known scope IDs.
    * @param {Set<string>} hiddenScopes - Scopes to exclude from results.
    * @returns {object} Settings grouped by namespace with status and entries.
@@ -116,26 +144,58 @@ export class DataSniffer {
     const byNamespace = {};
     const worldSettings = game.settings.storage.get('world');
     for (const setting of worldSettings) {
-      const dotIndex = setting.key.indexOf('.');
-      if (dotIndex === -1) continue;
-      const namespace = setting.key.substring(0, dotIndex);
-      if (hiddenScopes.has(namespace)) continue;
-      const settingKey = setting.key.substring(dotIndex + 1);
-      if (!byNamespace[namespace]) byNamespace[namespace] = { status: DataSniffer.#classify(namespace, knownScopes), entries: [] };
-      let parsedValue;
-      try {
-        parsedValue = JSON.parse(setting.value);
-      } catch {
-        parsedValue = setting.value;
-      }
-      const isStale = !DataSniffer.#isSettingRegistered(setting.key);
-      byNamespace[namespace].entries.push({ key: setting.key, settingKey, value: parsedValue, displayValue: JSON.stringify(parsedValue), isStale });
+      if (setting.user) continue;
+      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value);
+      if (!entry || hiddenScopes.has(entry.namespace)) continue;
+      if (!byNamespace[entry.namespace]) byNamespace[entry.namespace] = { status: DataSniffer.#classify(entry.namespace, knownScopes), entries: [] };
+      byNamespace[entry.namespace].entries.push(entry);
     }
     return byNamespace;
   }
 
   /**
-   * Scan all world documents and their embedded children for flag scopes.
+   * Scan User document flags plus user- and client-scoped settings. Non-GMs only see their own user.
+   * @param {Set<string>} knownScopes - All known scope IDs.
+   * @param {Set<string>} hiddenScopes - Scopes to exclude from results.
+   * @returns {{users: object[], clientSettings: object[]}} Per-user branches and this client's stored settings.
+   * @private
+   */
+  static #scanUserData(knownScopes, hiddenScopes) {
+    const byUser = new Map();
+    const branchFor = (userId) => {
+      if (!byUser.has(userId)) byUser.set(userId, { id: userId, name: game.users.get(userId)?.name ?? _loc('SNOOT.Users.UnknownUser'), entries: [] });
+      return byUser.get(userId);
+    };
+    const scanned = game.user.isGM ? game.users : [game.user];
+    for (const user of scanned) {
+      for (const scope of Object.keys(user.flags ?? {})) {
+        if (hiddenScopes.has(scope)) continue;
+        const flagData = user.flags[scope];
+        if (!flagData || typeof flagData !== 'object' || Object.keys(flagData).length === 0) continue;
+        branchFor(user.id).entries.push({ kind: 'flag', namespace: scope, status: DataSniffer.#classify(scope, knownScopes), uuid: user.uuid, flagKeys: Object.keys(flagData) });
+      }
+    }
+    for (const setting of game.settings.storage.get('world')) {
+      if (!setting.user) continue;
+      if (!game.user.isGM && setting.user !== game.user.id) continue;
+      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value);
+      if (!entry || hiddenScopes.has(entry.namespace)) continue;
+      branchFor(setting.user).entries.push({ ...entry, kind: 'setting', status: DataSniffer.#classify(entry.namespace, knownScopes), userId: setting.user });
+    }
+    const storage = game.settings.storage.get('client');
+    const clientSettings = [];
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      const entry = DataSniffer.#parseSettingEntry(key, storage.getItem(key));
+      if (!entry || hiddenScopes.has(entry.namespace)) continue;
+      clientSettings.push({ ...entry, kind: 'client', status: DataSniffer.#classify(entry.namespace, knownScopes) });
+    }
+    const users = [...byUser.values()].sort((a, b) => a.name.localeCompare(b.name));
+    return { users, clientSettings };
+  }
+
+  /**
+   * Scan all world documents and their embedded children for flag scopes. User documents are reported separately.
    * @param {Set<string>} knownScopes - All known scope IDs.
    * @param {Set<string>} hiddenScopes - Scopes to exclude from results.
    * @returns {object} Flags grouped by scope with status and document references.
@@ -169,6 +229,7 @@ export class DataSniffer {
       }
     };
     for (const collection of game.collections) {
+      if (collection.documentName === 'User') continue;
       for (const doc of collection) {
         processDoc(doc);
         processEmbedded(doc);
@@ -231,12 +292,13 @@ export class DataSniffer {
   }
 
   /**
-   * Delete a single world setting by key.
+   * Delete a single world or user-scoped setting by key.
    * @param {string} key - Full setting key, e.g. 'module-id.settingName'.
+   * @param {string|null} [userId] - Owning user ID for user-scoped settings.
    */
-  static async deleteSetting(key) {
+  static async deleteSetting(key, userId = null) {
     const worldSettings = game.settings.storage.get('world');
-    const setting = worldSettings.find((s) => s.key === key);
+    const setting = worldSettings.find((s) => s.key === key && (s.user ?? null) === (userId || null));
     if (!setting) {
       ui.notifications.clear();
       ui.notifications.warn('SNOOT.Notify.SettingNotFound', { localize: true, format: { key } });
@@ -248,14 +310,53 @@ export class DataSniffer {
   }
 
   /**
-   * Delete all world settings for a given namespace.
+   * Delete a single client-scoped setting from this browser's storage.
+   * @param {string} key - Full setting key, e.g. 'module-id.settingName'.
+   */
+  static deleteClientSetting(key) {
+    game.settings.storage.get('client').removeItem(key);
+    ui.notifications.clear();
+    ui.notifications.info('SNOOT.Notify.DeletedSetting', { localize: true, format: { key } });
+  }
+
+  /**
+   * Delete all user-scoped settings for a given namespace.
+   * @param {string} namespace - Module namespace to delete settings for.
+   * @returns {Promise<number>} Count of settings deleted.
+   * @private
+   */
+  static async #deleteUserSettingsForModule(namespace) {
+    const toDelete = game.settings.storage.get('world').filter((s) => s.user && s.key.startsWith(`${namespace}.`));
+    for (const setting of toDelete) await setting.delete();
+    return toDelete.length;
+  }
+
+  /**
+   * Remove a flag scope from every User document holding it in the report.
+   * @param {string} scope - Flag scope to remove.
+   * @param {object} report - The scan report.
+   * @returns {Promise<number>} Count of users updated.
+   * @private
+   */
+  static async #removeUserFlagsForScope(scope, report) {
+    const docs = [];
+    for (const branch of report.users?.users ?? []) {
+      if (!branch.entries.some((e) => e.kind === 'flag' && e.namespace === scope)) continue;
+      const user = game.users.get(branch.id);
+      if (user) docs.push(user);
+    }
+    return DataSniffer.#removeFlagFromDocuments(docs, scope);
+  }
+
+  /**
+   * Delete all world settings for a given namespace. User-scoped settings are left alone.
    * @param {string} namespace - Module namespace to delete settings for.
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
    */
   static async deleteSettingsForModule(namespace, { silent = false } = {}) {
     const worldSettings = game.settings.storage.get('world');
-    const toDelete = worldSettings.filter((s) => s.key.startsWith(`${namespace}.`));
+    const toDelete = worldSettings.filter((s) => !s.user && s.key.startsWith(`${namespace}.`));
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.DeletingSettings', { localize: true, progress: true });
     let done = 0;
     for (const setting of toDelete) {
@@ -432,15 +533,21 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
+   * @param {boolean} [options.includeUserData] - Also delete user-scoped settings and User document flags.
    */
-  static async cleanModule(moduleId, report, { silent = false } = {}) {
+  static async cleanModule(moduleId, report, { silent = false, includeUserData = false } = {}) {
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
     progress?.update({ pct: 0, message: _loc('SNOOT.Progress.Stage.Settings') });
     await DataSniffer.deleteSettingsForModule(moduleId, { silent: true });
-    progress?.update({ pct: 0.34, message: _loc('SNOOT.Progress.Stage.WorldFlags') });
+    progress?.update({ pct: 0.25, message: _loc('SNOOT.Progress.Stage.WorldFlags') });
     if (report.flags[moduleId]) await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true });
-    progress?.update({ pct: 0.67, message: _loc('SNOOT.Progress.Stage.CompendiumFlags') });
+    progress?.update({ pct: 0.5, message: _loc('SNOOT.Progress.Stage.CompendiumFlags') });
     if (report.compendiumFlags[moduleId]) await DataSniffer.removeCompendiumFlagsForScope(moduleId, report, { silent: true });
+    if (includeUserData) {
+      progress?.update({ pct: 0.75, message: _loc('SNOOT.Progress.Stage.UserData') });
+      await DataSniffer.#deleteUserSettingsForModule(moduleId);
+      await DataSniffer.#removeUserFlagsForScope(moduleId, report);
+    }
     progress?.update({ pct: 1 });
     if (silent) return;
     ui.notifications.clear();
@@ -453,19 +560,21 @@ export class DataSniffer {
    * @param {'orphaned'|'inactive'} status - Status to filter by.
    * @param {string} startMessageKey - Localization key for the initial progress message.
    * @param {string} completeMessageKey - Localization key for the final success notification.
+   * @param {boolean} includeUserData - Also delete user-scoped settings and User document flags.
    * @private
    */
-  static async #cleanAllByStatus(report, status, startMessageKey, completeMessageKey) {
+  static async #cleanAllByStatus(report, status, startMessageKey, completeMessageKey, includeUserData) {
     const namespaces = new Set();
     for (const [ns, data] of Object.entries(report.settings)) if (data.status === status) namespaces.add(ns);
     for (const [ns, data] of Object.entries(report.flags)) if (data.status === status) namespaces.add(ns);
     for (const [ns, data] of Object.entries(report.compendiumFlags)) if (data.status === status) namespaces.add(ns);
+    if (includeUserData) for (const branch of report.users?.users ?? []) for (const entry of branch.entries) if (entry.status === status) namespaces.add(entry.namespace);
     const total = namespaces.size;
     const progress = ui.notifications.info(startMessageKey, { localize: true, progress: true });
     let done = 0;
     for (const ns of namespaces) {
       progress.update({ pct: total ? done / total : 1, message: _loc('SNOOT.Progress.Module', { module: ns }) });
-      await DataSniffer.cleanModule(ns, report, { silent: true });
+      await DataSniffer.cleanModule(ns, report, { silent: true, includeUserData });
       done++;
     }
     progress.update({ pct: 1 });
@@ -476,17 +585,19 @@ export class DataSniffer {
   /**
    * Clean all data for every orphaned namespace in the report.
    * @param {object} report - The scan report.
+   * @param {boolean} [includeUserData] - Also delete user-scoped settings and User document flags.
    */
-  static async cleanAllOrphaned(report) {
-    await DataSniffer.#cleanAllByStatus(report, 'orphaned', 'SNOOT.Progress.CleaningOrphaned', 'SNOOT.Notify.CleanedOrphaned');
+  static async cleanAllOrphaned(report, includeUserData = false) {
+    await DataSniffer.#cleanAllByStatus(report, 'orphaned', 'SNOOT.Progress.CleaningOrphaned', 'SNOOT.Notify.CleanedOrphaned', includeUserData);
   }
 
   /**
    * Clean all data for every inactive namespace in the report.
    * @param {object} report - The scan report.
+   * @param {boolean} [includeUserData] - Also delete user-scoped settings and User document flags.
    */
-  static async cleanAllInactive(report) {
-    await DataSniffer.#cleanAllByStatus(report, 'inactive', 'SNOOT.Progress.CleaningInactive', 'SNOOT.Notify.CleanedInactive');
+  static async cleanAllInactive(report, includeUserData = false) {
+    await DataSniffer.#cleanAllByStatus(report, 'inactive', 'SNOOT.Progress.CleaningInactive', 'SNOOT.Notify.CleanedInactive', includeUserData);
   }
 
   /**
@@ -502,7 +613,7 @@ export class DataSniffer {
     let count = 0;
     let done = 0;
     for (const entry of stale) {
-      const setting = worldSettings.find((s) => s.key === entry.key);
+      const setting = worldSettings.find((s) => s.key === entry.key && !s.user);
       done++;
       if (setting) {
         await setting.delete();

@@ -1,0 +1,50 @@
+<section class="tab flags-users-tab {{tab.cssClass}}" data-group="primary" data-tab="flagsUsers">
+  <div class="tab-search">
+    <i class="fas fa-search"></i>
+    <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off"
+      data-tooltip aria-label="{{localize "SNOOT.Tooltip.Search"}}">
+  </div>
+
+  {{#if isPlayerView}}
+    <p class="client-caveat"><i class="fas fa-circle-info"></i> {{localize "SNOOT.Users.PlayerScope"}}</p>
+  {{/if}}
+
+  {{#each usersGroups}}
+    <fieldset class="namespace-group collapsed" data-namespace="{{this.key}}">
+      <div class="namespace-header" data-action="toggleSection" data-tooltip
+        aria-label="{{localize "SNOOT.Tooltip.Toggle"}}">
+        <legend>
+          <i class="fas fa-caret-down"></i>
+          <i class="fas {{#if this.isClient}}fa-desktop{{else}}fa-user{{/if}}"></i>
+          {{this.label}}
+          <span class="count">({{this.count}})</span>
+        </legend>
+      </div>
+      <div class="collapsible-content">
+        {{#if this.isClient}}
+          <p class="client-caveat"><i class="fas fa-circle-info"></i> {{localize "SNOOT.Users.ClientCaveat"}}</p>
+        {{/if}}
+        <table class="settings-table">
+          <thead>
+            <tr>
+              <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Kind"}}">
+                {{localize "SNOOT.Label.Kind"}}
+              </th>
+              <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Key"}}">
+                {{localize "SNOOT.Label.Key"}}
+              </th>
+              <th data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Value"}}">{{localize "SNOOT.Label.Value"}}</th>
+              <th class="col-btn" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Registered"}}"></th>
+              <th class="col-btn" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Actions"}}"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </fieldset>
+  {{/each}}
+
+  {{#unless hasUsers}}
+    <p class="empty-state">{{localize "SNOOT.Empty.Users"}}</p>
+  {{/unless}}
+</section>

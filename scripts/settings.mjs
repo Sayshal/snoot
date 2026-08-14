@@ -17,7 +17,7 @@ export function registerSettings() {
     hint: 'SNOOT.Settings.Menu.Hint',
     icon: 'fas fa-dog',
     type: SnootApp,
-    restricted: true
+    restricted: false
   });
 
   game.settings.register(MODULE.ID, SETTINGS.SHOW_CORE_FLAGS, {

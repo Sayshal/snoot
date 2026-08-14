@@ -184,6 +184,21 @@
     white-space: nowrap;
   }
 
+  .row-kind {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-11);
+    white-space: nowrap;
+  }
+
+  .client-caveat {
+    gap: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    margin: 0 0 0.5rem;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-12);
+  }
+
   .setting-value code {
     word-break: break-all;
   }

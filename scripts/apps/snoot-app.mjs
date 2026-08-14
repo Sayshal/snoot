@@ -28,6 +28,12 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #expandedSections = new Map();
 
+  /** @param {object} [options] - Application options. */
+  constructor(options = {}) {
+    super(options);
+    if (!game.user.isGM) this.tabGroups.primary = 'flagsUsers';
+  }
+
   static DEFAULT_OPTIONS = {
     id: 'snoot-app',
     tag: 'form',
@@ -41,6 +47,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cleanAllInactive: SnootApp.#onCleanAllInactive,
       cleanAllStale: SnootApp.#onCleanAllStale,
       deleteSetting: SnootApp.#onDeleteSetting,
+      deleteUserSetting: SnootApp.#onDeleteUserSetting,
+      deleteClientSetting: SnootApp.#onDeleteClientSetting,
       deleteModuleSettings: SnootApp.#onDeleteModuleSettings,
       removeScopeFlags: SnootApp.#onRemoveScopeFlags,
       removeDocFlag: SnootApp.#onRemoveDocFlag,
@@ -57,6 +65,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     settings: { template: TEMPLATES.SETTINGS, scrollable: [''] },
     flagsWorld: { template: TEMPLATES.FLAGS_WORLD, scrollable: [''] },
     flagsCompendiums: { template: TEMPLATES.FLAGS_COMPENDIUMS, scrollable: [''] },
+    flagsUsers: { template: TEMPLATES.FLAGS_USERS, scrollable: [''] },
     footer: { template: TEMPLATES.FOOTER }
   };
 
@@ -67,7 +76,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { id: 'overview', group: 'primary', icon: 'fas fa-chart-pie', label: 'SNOOT.Tab.Overview' },
         { id: 'settings', group: 'primary', icon: 'fas fa-cogs', label: 'SNOOT.Tab.Settings' },
         { id: 'flagsWorld', group: 'primary', icon: 'fas fa-flag', label: 'SNOOT.Tab.FlagsWorld' },
-        { id: 'flagsCompendiums', group: 'primary', icon: 'fas fa-atlas', label: 'SNOOT.Tab.FlagsCompendiums' }
+        { id: 'flagsCompendiums', group: 'primary', icon: 'fas fa-atlas', label: 'SNOOT.Tab.FlagsCompendiums' },
+        { id: 'flagsUsers', group: 'primary', icon: 'fas fa-users', label: 'SNOOT.Tab.Users' }
       ],
       initial: 'howTo'
     }
@@ -93,6 +103,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
           hasSettings: false,
           hasWorldFlags: false,
           hasCompendiumFlags: false,
+          hasUserData: false,
           hasStaleSettings: false,
           count: 0,
           canClean: !['active', 'system'].includes(data.status)
@@ -122,6 +133,14 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       totals.totalCompendiumFlags += data.documents.length;
       if (data.status === 'orphaned') totals.orphanedCompendiumFlags += data.documents.length;
     }
+    const userDataByNamespace = {};
+    for (const branch of report.users.users) {
+      for (const entry of branch.entries) {
+        if (!userDataByNamespace[entry.namespace]) userDataByNamespace[entry.namespace] = { status: entry.status, count: 0 };
+        userDataByNamespace[entry.namespace].count++;
+      }
+    }
+    for (const [ns, data] of Object.entries(userDataByNamespace)) addModule(ns, data, 'UserData', data.count);
     const statusOrder = { orphaned: 0, inactive: 1, active: 2, system: 3 };
     const modules = Object.values(moduleMap).sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.id.localeCompare(b.id));
     const hasOrphaned = totals.orphanedSettings > 0 || totals.orphanedWorldFlags > 0 || totals.orphanedCompendiumFlags > 0;
@@ -156,16 +175,49 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       canClean: !['active', 'system'].includes(data.status),
       count: data.documents.length
     }));
+    const usersGroups = report.users.users.filter((branch) => branch.entries.length).map((branch) => ({ key: `user:${branch.id}`, label: branch.name, count: branch.entries.length, isClient: false }));
+    if (report.users.clientSettings.length) usersGroups.push({ key: 'client', label: _loc('SNOOT.Users.ClientStorage'), count: report.users.clientSettings.length, isClient: true });
     const hasSettings = settingsGroups.length > 0;
     const hasWorldFlags = worldFlagsGroups.length > 0;
     const hasCompendiumFlags = compendiumFlagsGroups.length > 0;
-    return { ...context, totals, modules, hasOrphaned, hasInactive, hasStale, settingsGroups, hasSettings, worldFlagsGroups, hasWorldFlags, compendiumFlagsGroups, hasCompendiumFlags };
+    const hasUsers = usersGroups.length > 0;
+    return {
+      ...context,
+      totals,
+      modules,
+      hasOrphaned,
+      hasInactive,
+      hasStale,
+      settingsGroups,
+      hasSettings,
+      worldFlagsGroups,
+      hasWorldFlags,
+      compendiumFlagsGroups,
+      hasCompendiumFlags,
+      usersGroups,
+      hasUsers,
+      isPlayerView: !game.user.isGM
+    };
+  }
+
+  /** @override */
+  _configureRenderParts(options) {
+    const parts = super._configureRenderParts(options);
+    if (game.user.isGM) return parts;
+    return { tabs: parts.tabs, flagsUsers: parts.flagsUsers, footer: parts.footer };
+  }
+
+  /** @override */
+  _getTabsConfig(group) {
+    const config = super._getTabsConfig(group);
+    if (!config || game.user.isGM) return config;
+    return { ...config, tabs: config.tabs.filter((t) => t.id === 'flagsUsers'), initial: 'flagsUsers' };
   }
 
   /** @override */
   async _preparePartContext(partId, context, options) {
     context = await super._preparePartContext(partId, context, options);
-    const tabParts = ['howTo', 'overview', 'settings', 'flagsWorld', 'flagsCompendiums'];
+    const tabParts = ['howTo', 'overview', 'settings', 'flagsWorld', 'flagsCompendiums', 'flagsUsers'];
     if (tabParts.includes(partId)) context.tab = context.tabs?.[partId];
     return context;
   }
@@ -240,6 +292,41 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Look up the cached user-branch entries for a users-tab group key.
+   * @param {string} key - Group key, either 'user:<id>' or 'client'.
+   * @returns {object[]} Cached entries for that group.
+   * @private
+   */
+  #userEntries(key) {
+    if (key === 'client') return this.#report?.users?.clientSettings ?? [];
+    return this.#report?.users?.users?.find((branch) => `user:${branch.id}` === key)?.entries ?? [];
+  }
+
+  /**
+   * Build a users-tab row HTML string for a flag, user setting, or client setting entry.
+   * @param {object} entry - User-branch entry from the report.
+   * @param {string|null} userId - Owning user ID, or null for client storage.
+   * @returns {string} Row HTML.
+   * @private
+   */
+  #userRowHtml(entry, userId) {
+    const esc = foundry.utils.escapeHTML;
+    const kind = esc(_loc(`SNOOT.Kind.${entry.kind}`));
+    const badge = `<span class="tag badge ${BADGE_CLASS[entry.status]}">${esc(_loc(`SNOOT.Status.${entry.status}`))}</span>`;
+    if (entry.kind === 'flag') {
+      const remove = esc(_loc('SNOOT.Action.Remove'));
+      const keys = esc(entry.flagKeys.join(', '));
+      return `<tr><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.namespace)}</code></td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(entry.uuid)}" data-scope="${esc(entry.namespace)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
+    }
+    const stale = entry.isStale ? 'stale-row' : '';
+    const tip = esc(_loc(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
+    const iconClass = entry.isStale ? 'fa-times-circle stale-icon' : 'fa-check-circle registered-icon';
+    const del = esc(_loc('SNOOT.Action.Delete'));
+    const action = entry.kind === 'client' ? 'deleteClientSetting' : 'deleteUserSetting';
+    return `<tr class="${stale}"><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.key)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="${action}" data-key="${esc(entry.key)}" data-user-id="${esc(userId ?? '')}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
+  }
+
+  /**
    * Lazily populate a namespace group's tbody with rows from the cached report.
    * @param {HTMLElement} groupEl - The .namespace-group element.
    * @private
@@ -260,6 +347,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } else if (tab?.classList.contains('flags-compendiums-tab')) {
       const data = this.#report?.compendiumFlags?.[ns];
       if (data) html = data.documents.map((d) => this.#compendiumFlagRowHtml(d, ns)).join('');
+    } else if (tab?.classList.contains('flags-users-tab')) {
+      const userId = ns.startsWith('user:') ? ns.slice(5) : null;
+      html = this.#userEntries(ns)
+        .map((e) => this.#userRowHtml(e, userId))
+        .join('');
     }
     tbody.innerHTML = html;
     groupEl.dataset.loaded = 'true';
@@ -311,6 +403,19 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
             .toLowerCase()
             .includes(query) ||
           d.flagKeys.join(',').toLowerCase().includes(query)
+      );
+    }
+    if (tab.classList.contains('flags-users-tab')) {
+      return this.#userEntries(ns).some(
+        (e) =>
+          e.namespace.toLowerCase().includes(query) ||
+          String(e.key ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          String(e.displayValue ?? '')
+            .toLowerCase()
+            .includes(query) ||
+          (e.flagKeys ?? []).join(',').toLowerCase().includes(query)
       );
     }
     return false;
@@ -385,6 +490,35 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Count user-branch entries matching a predicate. Client-storage rows are never included.
+   * @param {Function} match - Predicate run against each user entry.
+   * @returns {number} Matching entry count.
+   * @private
+   */
+  #countUserData(match) {
+    let count = 0;
+    for (const branch of this.#report?.users?.users ?? []) count += branch.entries.filter(match).length;
+    return count;
+  }
+
+  /**
+   * Ask whether a bulk clean should also delete user-scoped data.
+   * @param {Function} match - Predicate identifying the user entries in scope.
+   * @returns {Promise<boolean>} True if the user opted in.
+   * @private
+   */
+  async #confirmUserData(match) {
+    const count = this.#countUserData(match);
+    if (!count) return false;
+    return DialogV2.confirm({
+      window: { title: 'SNOOT.Confirm.IncludeUserData.Title' },
+      content: _loc('SNOOT.Confirm.IncludeUserData.Content', { count }),
+      yes: { label: 'SNOOT.Action.IncludeUserData' },
+      no: { label: 'SNOOT.Action.SkipUserData', default: true }
+    });
+  }
+
+  /**
    * Re-scan all data.
    * @param {Event} _event - The triggering event.
    * @param {HTMLElement} _target - The clicked element.
@@ -423,7 +557,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       content: _loc('SNOOT.Confirm.CleanModule.Content', { module: moduleId })
     });
     if (!confirmed) return;
-    await DataSniffer.cleanModule(moduleId, this.#report);
+    const includeUserData = await this.#confirmUserData((e) => e.namespace === moduleId);
+    await DataSniffer.cleanModule(moduleId, this.#report, { includeUserData });
     await this.#invalidateAndRender();
   }
 
@@ -439,7 +574,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       content: _loc('SNOOT.Confirm.CleanAll.Content')
     });
     if (!confirmed) return;
-    await DataSniffer.cleanAllOrphaned(this.#report);
+    const includeUserData = await this.#confirmUserData((e) => e.status === 'orphaned');
+    await DataSniffer.cleanAllOrphaned(this.#report, includeUserData);
     await this.#invalidateAndRender();
   }
 
@@ -455,7 +591,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       content: _loc('SNOOT.Confirm.CleanInactive.Content')
     });
     if (!confirmed) return;
-    await DataSniffer.cleanAllInactive(this.#report);
+    const includeUserData = await this.#confirmUserData((e) => e.status === 'inactive');
+    await DataSniffer.cleanAllInactive(this.#report, includeUserData);
     await this.#invalidateAndRender();
   }
 
@@ -489,6 +626,40 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key);
+    await this.#invalidateAndRender();
+  }
+
+  /**
+   * Delete a single user-scoped setting.
+   * @param {Event} _event - The triggering event.
+   * @param {HTMLElement} target - The clicked element with data-key and data-user-id.
+   * @private
+   */
+  static async #onDeleteUserSetting(_event, target) {
+    const { key, userId } = target.dataset;
+    const confirmed = await DialogV2.confirm({
+      window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
+      content: _loc('SNOOT.Confirm.DeleteUserSetting.Content', { key, user: game.users.get(userId)?.name ?? userId })
+    });
+    if (!confirmed) return;
+    await DataSniffer.deleteSetting(key, userId);
+    await this.#invalidateAndRender();
+  }
+
+  /**
+   * Delete a single client-scoped setting from this browser's storage.
+   * @param {Event} _event - The triggering event.
+   * @param {HTMLElement} target - The clicked element with data-key.
+   * @private
+   */
+  static async #onDeleteClientSetting(_event, target) {
+    const key = target.dataset.key;
+    const confirmed = await DialogV2.confirm({
+      window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
+      content: _loc('SNOOT.Confirm.DeleteClientSetting.Content', { key })
+    });
+    if (!confirmed) return;
+    DataSniffer.deleteClientSetting(key);
     await this.#invalidateAndRender();
   }
 
