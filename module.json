@@ -22,12 +22,8 @@
     "minimum": "14",
     "verified": "14.366"
   },
-  "esmodules": [
-    "scripts/snoot.mjs"
-  ],
-  "styles": [
-    "styles/snoot.css"
-  ],
+  "esmodules": ["scripts/snoot.mjs"],
+  "styles": ["styles/snoot.css"],
   "relationships": {
     "requires": [
       {
@@ -38,16 +34,8 @@
   },
   "flags": {
     "hotReload": {
-      "extensions": [
-        "css",
-        "html",
-        "hbs",
-        "json"
-      ],
-      "paths": [
-        "styles",
-        "templates"
-      ]
+      "extensions": ["css", "html", "hbs", "json"],
+      "paths": ["styles", "templates"]
     }
   }
 }
