@@ -322,20 +322,28 @@ export class DataSniffer {
   /**
    * Delete all user-scoped settings for a given namespace.
    * @param {string} namespace - Module namespace to delete settings for.
-   * @returns {Promise<number>} Count of settings deleted.
+   * @returns {Promise<{count: number, failed: number}>} Settings deleted and settings that could not be deleted.
    * @private
    */
   static async #deleteUserSettingsForModule(namespace) {
     const toDelete = game.settings.storage.get('world').filter((s) => s.user && s.key.startsWith(`${namespace}.`));
-    for (const setting of toDelete) await setting.delete();
-    return toDelete.length;
+    let failed = 0;
+    for (const setting of toDelete) {
+      try {
+        await setting.delete();
+      } catch (err) {
+        failed++;
+        ATLAS.log(1, `Failed to delete user setting "${setting.key}"`, err);
+      }
+    }
+    return { count: toDelete.length - failed, failed };
   }
 
   /**
    * Remove a flag scope from every User document holding it in the report.
    * @param {string} scope - Flag scope to remove.
    * @param {object} report - The scan report.
-   * @returns {Promise<number>} Count of users updated.
+   * @returns {Promise<{count: number, failed: number}>} Users updated and users that could not be updated.
    * @private
    */
   static async #removeUserFlagsForScope(scope, report) {
@@ -350,23 +358,34 @@ export class DataSniffer {
 
   /**
    * Delete all world settings for a given namespace. User-scoped settings are left alone.
+   * A rejected delete is recorded and the remaining settings are still attempted.
    * @param {string} namespace - Module namespace to delete settings for.
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
+   * @returns {Promise<{count: number, failed: number}>} Settings deleted and settings that could not be deleted.
    */
   static async deleteSettingsForModule(namespace, { silent = false } = {}) {
     const worldSettings = game.settings.storage.get('world');
     const toDelete = worldSettings.filter((s) => !s.user && s.key.startsWith(`${namespace}.`));
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.DeletingSettings', { localize: true, progress: true });
     let done = 0;
+    let failed = 0;
     for (const setting of toDelete) {
-      await setting.delete();
+      try {
+        await setting.delete();
+      } catch (err) {
+        failed++;
+        ATLAS.log(1, `Failed to delete setting "${setting.key}"`, err);
+      }
       done++;
       progress?.update({ pct: toDelete.length ? done / toDelete.length : 1, message: setting.key });
     }
-    if (silent) return;
+    const result = { count: toDelete.length - failed, failed };
+    if (silent) return result;
     ui.notifications.clear();
-    ui.notifications.success('SNOOT.Notify.DeletedSettings', { localize: true, format: { count: toDelete.length, namespace }, duration: 3000 });
+    if (failed) ui.notifications.warn('SNOOT.Notify.DeletedSettingsPartial', { localize: true, format: { ...result, namespace }, duration: 5000 });
+    else ui.notifications.success('SNOOT.Notify.DeletedSettings', { localize: true, format: { count: result.count, namespace }, duration: 3000 });
+    return result;
   }
 
   /**
@@ -382,9 +401,10 @@ export class DataSniffer {
 
   /**
    * Batch-remove a flag scope from resolved documents, grouped into one write per collection.
+   * A rejected batch is retried one document at a time so a single bad document does not drop the rest.
    * @param {Document[]} docs - Resolved documents to update.
    * @param {string} scope - Flag scope to remove.
-   * @returns {Promise<number>} Count of documents updated.
+   * @returns {Promise<{count: number, failed: number}>} Documents updated and documents that could not be updated.
    * @private
    */
   static async #removeFlagFromDocuments(docs, scope) {
@@ -402,24 +422,34 @@ export class DataSniffer {
         topLevel.get(key).updates.push(update);
       }
     }
-    let count = 0;
+    const batches = [];
     for (const { cls, pack, updates } of topLevel.values()) {
-      try {
-        await cls.updateDocuments(updates, pack ? { pack } : {});
-        count += updates.length;
-      } catch (err) {
-        ATLAS.log(1, `Failed to remove "${scope}" flags from ${updates.length} ${cls.documentName} document(s)`, err);
-      }
+      batches.push({ updates, label: cls.documentName, where: pack ? ` in ${pack}` : '', apply: (u) => cls.updateDocuments(u, pack ? { pack } : {}) });
     }
     for (const { parent, name, updates } of embedded.values()) {
+      batches.push({ updates, label: name, where: ` on ${parent.uuid}`, apply: (u) => parent.updateEmbeddedDocuments(name, u) });
+    }
+    let count = 0;
+    let failed = 0;
+    for (const { updates, label, where, apply } of batches) {
       try {
-        await parent.updateEmbeddedDocuments(name, updates);
+        await apply(updates);
         count += updates.length;
+        continue;
       } catch (err) {
-        ATLAS.log(1, `Failed to remove "${scope}" flags from ${updates.length} embedded ${name} document(s) on ${parent.uuid}`, err);
+        ATLAS.log(2, `Batched removal of "${scope}" flags failed for ${updates.length} ${label} document(s)${where}; retrying one at a time`, err);
+      }
+      for (const update of updates) {
+        try {
+          await apply([update]);
+          count++;
+        } catch (err) {
+          failed++;
+          ATLAS.log(1, `Failed to remove "${scope}" flags from ${label} ${update._id}${where}`, err);
+        }
       }
     }
-    return count;
+    return { count, failed };
   }
 
   /**
@@ -447,6 +477,7 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
+   * @returns {Promise<{count: number, failed: number}>} Documents updated and documents that could not be updated.
    */
   static async removeFlagsForScope(scope, report, { silent = false } = {}) {
     const entries = report.flags[scope]?.documents ?? [];
@@ -456,11 +487,13 @@ export class DataSniffer {
       const doc = await fromUuid(entry.uuid);
       if (doc) docs.push(doc);
     }
-    const count = await DataSniffer.#removeFlagFromDocuments(docs, scope);
+    const result = await DataSniffer.#removeFlagFromDocuments(docs, scope);
     progress?.update({ pct: 1 });
-    if (silent) return;
+    if (silent) return result;
     ui.notifications.clear();
-    ui.notifications.success('SNOOT.Notify.RemovedFlags', { localize: true, format: { scope, count }, duration: 3000 });
+    if (result.failed) ui.notifications.warn('SNOOT.Notify.RemovedFlagsPartial', { localize: true, format: { scope, ...result }, duration: 5000 });
+    else ui.notifications.success('SNOOT.Notify.RemovedFlags', { localize: true, format: { scope, count: result.count }, duration: 3000 });
+    return result;
   }
 
   /**
@@ -490,6 +523,7 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
+   * @returns {Promise<{count: number, failed: number}>} Documents updated and documents that could not be updated.
    */
   static async removeCompendiumFlagsForScope(scope, report, { silent = false } = {}) {
     const entries = report.compendiumFlags[scope]?.documents ?? [];
@@ -502,6 +536,7 @@ export class DataSniffer {
     const total = packEntries.length;
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.RemovingCompendiumFlags', { localize: true, progress: true });
     let count = 0;
+    let failed = 0;
     let done = 0;
     for (const [collection, uuids] of packEntries) {
       const pack = game.packs.get(collection);
@@ -518,13 +553,18 @@ export class DataSniffer {
         const doc = await fromUuid(uuid);
         if (doc) docs.push(doc);
       }
-      count += await DataSniffer.#removeFlagFromDocuments(docs, scope);
+      const removed = await DataSniffer.#removeFlagFromDocuments(docs, scope);
+      count += removed.count;
+      failed += removed.failed;
       DataSniffer.#purgeIndexFlag(pack, docs, scope);
       if (wasLocked) await pack.configure({ locked: true });
     }
-    if (silent) return;
+    const result = { count, failed };
+    if (silent) return result;
     ui.notifications.clear();
-    ui.notifications.success('SNOOT.Notify.RemovedCompendiumFlags', { localize: true, format: { scope, count }, duration: 3000 });
+    if (failed) ui.notifications.warn('SNOOT.Notify.RemovedCompendiumFlagsPartial', { localize: true, format: { scope, ...result }, duration: 5000 });
+    else ui.notifications.success('SNOOT.Notify.RemovedCompendiumFlags', { localize: true, format: { scope, count }, duration: 3000 });
+    return result;
   }
 
   /**
@@ -534,24 +574,27 @@ export class DataSniffer {
    * @param {object} [options] - Optional parameters.
    * @param {boolean} [options.silent] - Suppress progress/info notifications.
    * @param {boolean} [options.includeUserData] - Also delete user-scoped settings and User document flags.
+   * @returns {Promise<number>} Count of settings and documents that could not be cleaned.
    */
   static async cleanModule(moduleId, report, { silent = false, includeUserData = false } = {}) {
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
     progress?.update({ pct: 0, message: _loc('SNOOT.Progress.Stage.Settings') });
-    await DataSniffer.deleteSettingsForModule(moduleId, { silent: true });
+    let failed = (await DataSniffer.deleteSettingsForModule(moduleId, { silent: true })).failed;
     progress?.update({ pct: 0.25, message: _loc('SNOOT.Progress.Stage.WorldFlags') });
-    if (report.flags[moduleId]) await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true });
+    if (report.flags[moduleId]) failed += (await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true })).failed;
     progress?.update({ pct: 0.5, message: _loc('SNOOT.Progress.Stage.CompendiumFlags') });
-    if (report.compendiumFlags[moduleId]) await DataSniffer.removeCompendiumFlagsForScope(moduleId, report, { silent: true });
+    if (report.compendiumFlags[moduleId]) failed += (await DataSniffer.removeCompendiumFlagsForScope(moduleId, report, { silent: true })).failed;
     if (includeUserData) {
       progress?.update({ pct: 0.75, message: _loc('SNOOT.Progress.Stage.UserData') });
-      await DataSniffer.#deleteUserSettingsForModule(moduleId);
-      await DataSniffer.#removeUserFlagsForScope(moduleId, report);
+      failed += (await DataSniffer.#deleteUserSettingsForModule(moduleId)).failed;
+      failed += (await DataSniffer.#removeUserFlagsForScope(moduleId, report)).failed;
     }
     progress?.update({ pct: 1 });
-    if (silent) return;
+    if (silent) return failed;
     ui.notifications.clear();
-    ui.notifications.success('SNOOT.Notify.CleanedModule', { localize: true, format: { module: moduleId }, duration: 3000 });
+    if (failed) ui.notifications.warn('SNOOT.Notify.CleanedModulePartial', { localize: true, format: { module: moduleId, failed }, duration: 5000 });
+    else ui.notifications.success('SNOOT.Notify.CleanedModule', { localize: true, format: { module: moduleId }, duration: 3000 });
+    return failed;
   }
 
   /**
@@ -572,14 +615,16 @@ export class DataSniffer {
     const total = namespaces.size;
     const progress = ui.notifications.info(startMessageKey, { localize: true, progress: true });
     let done = 0;
+    let failed = 0;
     for (const ns of namespaces) {
       progress.update({ pct: total ? done / total : 1, message: _loc('SNOOT.Progress.Module', { module: ns }) });
-      await DataSniffer.cleanModule(ns, report, { silent: true, includeUserData });
+      failed += await DataSniffer.cleanModule(ns, report, { silent: true, includeUserData });
       done++;
     }
     progress.update({ pct: 1 });
     ui.notifications.clear();
-    ui.notifications.success(completeMessageKey, { localize: true, format: { count: total }, duration: 3000 });
+    if (failed) ui.notifications.warn('SNOOT.Notify.CleanedPartial', { localize: true, format: { count: total, failed }, duration: 5000 });
+    else ui.notifications.success(completeMessageKey, { localize: true, format: { count: total }, duration: 3000 });
   }
 
   /**
