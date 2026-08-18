@@ -61,6 +61,10 @@
     color: var(--color-level-success);
   }
 
+  .pending-icon {
+    color: var(--color-level-info);
+  }
+
   .stale-badge {
     color: var(--color-level-warning);
     font-weight: bold;
@@ -69,6 +73,10 @@
 
   .stale-row {
     background: color-mix(in srgb, var(--color-level-warning) 8%, transparent);
+  }
+
+  .pending-row {
+    background: color-mix(in srgb, var(--color-level-info) 8%, transparent);
   }
 
   .status-row {

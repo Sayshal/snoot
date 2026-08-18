@@ -12,6 +12,17 @@ const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applicat
 /** @type {Object<string, string>} Map module status to Foundry badge CSS class. */
 const BADGE_CLASS = { system: 'neutral', active: 'success', inactive: 'warning', orphaned: 'error' };
 
+/**
+ * Resolve the registration marker for a setting entry.
+ * @param {object} entry - Setting entry from the report.
+ * @returns {{rowClass: string, tooltip: string, iconClass: string}} Row class, tooltip text, and icon classes.
+ */
+function registrationMarker(entry) {
+  if (entry.isPendingRegistration) return { rowClass: 'pending-row', tooltip: _loc('SNOOT.Tooltip.Pending'), iconClass: 'fa-hourglass-half pending-icon' };
+  if (entry.isStale) return { rowClass: 'stale-row', tooltip: _loc('SNOOT.Tooltip.Stale'), iconClass: 'fa-times-circle stale-icon' };
+  return { rowClass: '', tooltip: _loc('SNOOT.Tooltip.Registered'), iconClass: 'fa-check-circle registered-icon' };
+}
+
 /** Application for inspecting and cleaning module data. */
 export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
@@ -116,7 +127,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addModule(ns, data, 'Settings', data.entries.length);
       totals.totalSettings += data.entries.length;
       if (data.status === 'orphaned') totals.orphanedSettings += data.entries.length;
-      const staleCount = data.entries.filter((e) => e.isStale).length;
+      const staleCount = data.entries.filter((e) => e.isStale && !e.isPendingRegistration).length;
       if (staleCount > 0) {
         totals.staleSettings += staleCount;
         moduleMap[ns].hasStaleSettings = true;
@@ -147,7 +158,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasInactive = modules.some((m) => m.status === 'inactive');
     const hasStale = totals.staleSettings > 0;
     const settingsGroups = Object.entries(report.settings).map(([ns, data]) => {
-      const staleCount = data.entries.filter((e) => e.isStale).length;
+      const staleCount = data.entries.filter((e) => e.isStale && !e.isPendingRegistration).length;
       return {
         namespace: ns,
         status: data.status,
@@ -256,11 +267,10 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #settingRowHtml(entry) {
     const esc = foundry.utils.escapeHTML;
-    const stale = entry.isStale ? 'stale-row' : '';
-    const tip = esc(_loc(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
-    const iconClass = entry.isStale ? 'fa-times-circle stale-icon' : 'fa-check-circle registered-icon';
+    const { rowClass, tooltip, iconClass } = registrationMarker(entry);
+    const tip = esc(tooltip);
     const del = esc(_loc('SNOOT.Action.Delete'));
-    return `<tr class="${stale}"><td class="setting-key"><code>${esc(entry.settingKey)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="deleteSetting" data-key="${esc(entry.key)}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
+    return `<tr class="${rowClass}"><td class="setting-key"><code>${esc(entry.settingKey)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="deleteSetting" data-key="${esc(entry.key)}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
 
   /**
@@ -318,12 +328,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const keys = esc(entry.flagKeys.join(', '));
       return `<tr><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.namespace)}</code></td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(entry.uuid)}" data-scope="${esc(entry.namespace)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
     }
-    const stale = entry.isStale ? 'stale-row' : '';
-    const tip = esc(_loc(entry.isStale ? 'SNOOT.Tooltip.Stale' : 'SNOOT.Tooltip.Registered'));
-    const iconClass = entry.isStale ? 'fa-times-circle stale-icon' : 'fa-check-circle registered-icon';
+    const { rowClass, tooltip, iconClass } = registrationMarker(entry);
+    const tip = esc(tooltip);
     const del = esc(_loc('SNOOT.Action.Delete'));
     const action = entry.kind === 'client' ? 'deleteClientSetting' : 'deleteUserSetting';
-    return `<tr class="${stale}"><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.key)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="${action}" data-key="${esc(entry.key)}" data-user-id="${esc(userId ?? '')}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
+    return `<tr class="${rowClass}"><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.key)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="${action}" data-key="${esc(entry.key)}" data-user-id="${esc(userId ?? '')}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
 
   /**

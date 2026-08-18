@@ -111,10 +111,11 @@ export class DataSniffer {
    * Parse a stored setting into a report entry.
    * @param {string} key - Full setting key, e.g. 'module-id.settingName'.
    * @param {string} rawValue - Serialized setting value.
+   * @param {Set<string>} knownScopes - All known scope IDs.
    * @returns {object|null} Parsed entry, or null if the key has no namespace.
    * @private
    */
-  static #parseSettingEntry(key, rawValue) {
+  static #parseSettingEntry(key, rawValue, knownScopes) {
     const dotIndex = key.indexOf('.');
     if (dotIndex === -1) return null;
     let parsedValue;
@@ -123,13 +124,18 @@ export class DataSniffer {
     } catch {
       parsedValue = rawValue;
     }
+    const namespace = key.substring(0, dotIndex);
+    const status = DataSniffer.#classify(namespace, knownScopes);
+    const isStale = !DataSniffer.#isSettingRegistered(key);
     return {
       key,
-      namespace: key.substring(0, dotIndex),
+      namespace,
       settingKey: key.substring(dotIndex + 1),
       value: parsedValue,
       displayValue: JSON.stringify(parsedValue),
-      isStale: !DataSniffer.#isSettingRegistered(key)
+      status,
+      isStale,
+      isPendingRegistration: isStale && (status === 'active' || status === 'system')
     };
   }
 
@@ -145,9 +151,9 @@ export class DataSniffer {
     const worldSettings = game.settings.storage.get('world');
     for (const setting of worldSettings) {
       if (setting.user) continue;
-      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value);
+      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value, knownScopes);
       if (!entry || hiddenScopes.has(entry.namespace)) continue;
-      if (!byNamespace[entry.namespace]) byNamespace[entry.namespace] = { status: DataSniffer.#classify(entry.namespace, knownScopes), entries: [] };
+      if (!byNamespace[entry.namespace]) byNamespace[entry.namespace] = { status: entry.status, entries: [] };
       byNamespace[entry.namespace].entries.push(entry);
     }
     return byNamespace;
@@ -178,17 +184,17 @@ export class DataSniffer {
     for (const setting of game.settings.storage.get('world')) {
       if (!setting.user) continue;
       if (!game.user.isGM && setting.user !== game.user.id) continue;
-      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value);
+      const entry = DataSniffer.#parseSettingEntry(setting.key, setting.value, knownScopes);
       if (!entry || hiddenScopes.has(entry.namespace)) continue;
-      branchFor(setting.user).entries.push({ ...entry, kind: 'setting', status: DataSniffer.#classify(entry.namespace, knownScopes), userId: setting.user });
+      branchFor(setting.user).entries.push({ ...entry, kind: 'setting', userId: setting.user });
     }
     const storage = game.settings.storage.get('client');
     const clientSettings = [];
     for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
-      const entry = DataSniffer.#parseSettingEntry(key, storage.getItem(key));
+      const entry = DataSniffer.#parseSettingEntry(key, storage.getItem(key), knownScopes);
       if (!entry || hiddenScopes.has(entry.namespace)) continue;
-      clientSettings.push({ ...entry, kind: 'client', status: DataSniffer.#classify(entry.namespace, knownScopes) });
+      clientSettings.push({ ...entry, kind: 'client' });
     }
     const users = [...byUser.values()].sort((a, b) => a.name.localeCompare(b.name));
     return { users, clientSettings };
@@ -653,7 +659,7 @@ export class DataSniffer {
    */
   static async cleanAllStale(report) {
     const stale = [];
-    for (const [, data] of Object.entries(report.settings)) for (const entry of data.entries) if (entry.isStale) stale.push(entry);
+    for (const [, data] of Object.entries(report.settings)) for (const entry of data.entries) if (entry.isStale && !entry.isPendingRegistration) stale.push(entry);
     const total = stale.length;
     const progress = ui.notifications.info('SNOOT.Progress.CleaningStale', { localize: true, progress: true });
     const worldSettings = game.settings.storage.get('world');
