@@ -212,7 +212,7 @@ export class DataSniffer {
         if (!byScope[scope]) byScope[scope] = { status: DataSniffer.#classify(scope, knownScopes), documents: [] };
         byScope[scope].documents.push({
           uuid: doc.uuid,
-          name: doc.name || doc.title || doc.label || '(unnamed)',
+          name: doc.name || doc.title || doc.label || (doc.documentName === 'ActorDelta' ? doc.parent?.name : null) || '(unnamed)',
           type: doc.documentName,
           collectionName: doc.collectionName,
           flagKeys: Object.keys(flagData)
@@ -220,9 +220,11 @@ export class DataSniffer {
       }
     };
     const processEmbedded = (doc) => {
-      for (const collectionName of Object.keys(doc.constructor.hierarchy)) {
-        if (!doc[collectionName]?.size) continue;
-        for (const child of doc[collectionName]) {
+      for (const field of Object.values(doc.constructor.hierarchy)) {
+        const collection = field.getCollection(doc);
+        if (!collection.size) continue;
+        for (const child of collection) {
+          if (!collection.manages(child.id)) continue;
           processDoc(child);
           processEmbedded(child);
         }
