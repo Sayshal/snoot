@@ -1,7 +1,7 @@
 {
   "id": "snoot",
   "title": "Snoot",
-  "version": "0.1.0",
+  "version": "",
   "description": "Uninstalled a module but its settings and flags are still cluttering your world? Snoot sniffs them out. It scans your documents and compendiums for orphaned data from modules that are gone or disabled, then groups it all by module so you can spot what's stale and clear it out in bulk.",
   "authors": [
     {
@@ -22,7 +22,7 @@
     "minimum": "14",
     "verified": "14.366"
   },
-  "esmodules": ["scripts/snoot.mjs"],
+  "esmodules": ["snoot.mjs"],
   "styles": ["styles/snoot.css"],
   "relationships": {
     "requires": [
