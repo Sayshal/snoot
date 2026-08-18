@@ -18,9 +18,9 @@
     flex-direction: column;
     align-items: center;
     padding: 0.75rem 1rem;
-    border: 0.0625rem solid var(--color-cool-5);
+    border: 0.0625rem solid var(--atlas-border, rgb(11 10 19));
     border-radius: 0.5rem;
-    background: var(--color-cool-4);
+    background: var(--atlas-bg-lighter, rgb(48 40 49));
 
     .card-top {
       gap: 0.5rem;
@@ -143,7 +143,7 @@
     top: 0;
     align-items: center;
     padding: 0.25rem 0;
-    background: var(--color-background);
+    background: var(--atlas-bg, rgb(31 31 31));
 
     > i {
       opacity: 0.5;
@@ -315,27 +315,6 @@
       li {
         margin: 0.25rem 0;
       }
-    }
-  }
-}
-
-.theme-light .snoot {
-  .how-to-content {
-    dl.status-glossary dt,
-    dl.tabs-glossary dt {
-      color: var(--color-text-primary);
-      text-shadow: none;
-    }
-  }
-
-  .summary-card {
-    border-color: var(--color-warm-3);
-    color: var(--color-text-primary);
-    text-shadow: none;
-    background: none;
-
-    .card-label {
-      color: var(--color-text-secondary);
     }
   }
 }
