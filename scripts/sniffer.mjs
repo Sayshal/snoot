@@ -586,7 +586,7 @@ export class DataSniffer {
    */
   static async cleanModule(moduleId, report, { silent = false, includeUserData = false } = {}) {
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
-    progress?.update({ pct: 0, message: _loc('SNOOT.Progress.Stage.Settings') });
+    progress?.update({ pct: 0, message: _loc('ATLAS.Common.Settings') });
     let failed = (await DataSniffer.deleteSettingsForModule(moduleId, { silent: true })).failed;
     progress?.update({ pct: 0.25, message: _loc('SNOOT.Progress.Stage.WorldFlags') });
     if (report.flags[moduleId]) failed += (await DataSniffer.removeFlagsForScope(moduleId, report, { silent: true })).failed;

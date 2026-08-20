@@ -84,11 +84,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     primary: {
       tabs: [
         { id: 'howTo', group: 'primary', icon: 'fas fa-circle-question', label: 'SNOOT.Tab.HowTo' },
-        { id: 'overview', group: 'primary', icon: 'fas fa-chart-pie', label: 'SNOOT.Tab.Overview' },
-        { id: 'settings', group: 'primary', icon: 'fas fa-cogs', label: 'SNOOT.Tab.Settings' },
+        { id: 'overview', group: 'primary', icon: 'fas fa-chart-pie', label: 'ATLAS.Common.Overview' },
+        { id: 'settings', group: 'primary', icon: 'fas fa-cogs', label: 'ATLAS.Common.Settings' },
         { id: 'flagsWorld', group: 'primary', icon: 'fas fa-flag', label: 'SNOOT.Tab.FlagsWorld' },
         { id: 'flagsCompendiums', group: 'primary', icon: 'fas fa-atlas', label: 'SNOOT.Tab.FlagsCompendiums' },
-        { id: 'flagsUsers', group: 'primary', icon: 'fas fa-users', label: 'SNOOT.Tab.Users' }
+        { id: 'flagsUsers', group: 'primary', icon: 'fas fa-users', label: 'ATLAS.Common.Users' }
       ],
       initial: 'howTo'
     }
@@ -269,7 +269,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const esc = foundry.utils.escapeHTML;
     const { rowClass, tooltip, iconClass } = registrationMarker(entry);
     const tip = esc(tooltip);
-    const del = esc(_loc('SNOOT.Action.Delete'));
+    const del = esc(_loc('ATLAS.Common.Delete'));
     return `<tr class="${rowClass}"><td class="setting-key"><code>${esc(entry.settingKey)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="deleteSetting" data-key="${esc(entry.key)}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
 
@@ -282,7 +282,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #worldFlagRowHtml(doc, scope) {
     const esc = foundry.utils.escapeHTML;
-    const remove = esc(_loc('SNOOT.Action.Remove'));
+    const remove = esc(_loc('ATLAS.Common.Remove'));
     const keys = esc(doc.flagKeys.join(', '));
     return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
@@ -296,7 +296,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #compendiumFlagRowHtml(doc, scope) {
     const esc = foundry.utils.escapeHTML;
-    const remove = esc(_loc('SNOOT.Action.Remove'));
+    const remove = esc(_loc('ATLAS.Common.Remove'));
     const keys = esc(doc.flagKeys.join(', '));
     return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="pack-label">${esc(doc.packLabel)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeCompendiumDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
@@ -324,13 +324,13 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const kind = esc(_loc(`SNOOT.Kind.${entry.kind}`));
     const badge = `<span class="tag badge ${BADGE_CLASS[entry.status]}">${esc(_loc(`SNOOT.Status.${entry.status}`))}</span>`;
     if (entry.kind === 'flag') {
-      const remove = esc(_loc('SNOOT.Action.Remove'));
+      const remove = esc(_loc('ATLAS.Common.Remove'));
       const keys = esc(entry.flagKeys.join(', '));
       return `<tr><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.namespace)}</code></td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"></td><td class="col-btn"><a data-action="removeDocFlag" data-uuid="${esc(entry.uuid)}" data-scope="${esc(entry.namespace)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
     }
     const { rowClass, tooltip, iconClass } = registrationMarker(entry);
     const tip = esc(tooltip);
-    const del = esc(_loc('SNOOT.Action.Delete'));
+    const del = esc(_loc('ATLAS.Common.Delete'));
     const action = entry.kind === 'client' ? 'deleteClientSetting' : 'deleteUserSetting';
     return `<tr class="${rowClass}"><td class="row-kind">${kind}</td><td class="setting-key">${badge} <code>${esc(entry.key)}</code></td><td class="setting-value"><code>${esc(entry.displayValue)}</code></td><td class="col-btn"><i class="fas ${iconClass}" data-tooltip aria-label="${tip}"></i></td><td class="col-btn"><a data-action="${action}" data-key="${esc(entry.key)}" data-user-id="${esc(userId ?? '')}" data-tooltip aria-label="${del}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
@@ -492,7 +492,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       window: { title: 'SNOOT.Confirm.Rescan.Title' },
       content: _loc('SNOOT.Confirm.Rescan.Content'),
       yes: { label: 'SNOOT.Action.Rescan', default: true },
-      no: { label: 'SNOOT.Action.Skip' }
+      no: { label: 'ATLAS.Common.Skip' }
     });
     if (!rescan) return;
     this.#report = null;
