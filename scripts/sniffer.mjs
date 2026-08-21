@@ -98,6 +98,19 @@ export class DataSniffer {
   }
 
   /**
+   * Check whether a document's sub-type is registered.
+   * @param {string} documentName - Document class name, e.g. 'Item' or 'ActiveEffect'.
+   * @param {string} [type] - Stored sub-type value.
+   * @returns {boolean} True if the document can never accept a flag removal.
+   * @private
+   */
+  static #isUnremovable(documentName, type) {
+    if (!type) return false;
+    const types = game.documentTypes[documentName];
+    return !!types && !types.includes(type);
+  }
+
+  /**
    * Check if a setting key is still registered.
    * @param {string} fullKey - Full setting key, e.g. 'module-id.settingName'.
    * @returns {boolean} True if the setting is registered.
@@ -259,7 +272,7 @@ export class DataSniffer {
     const hierarchy = cls.hierarchy ?? {};
     const embeddedNames = Object.keys(hierarchy);
     const fields = ['flags'];
-    for (const name of embeddedNames) fields.push(`${name}.flags`, `${name}.name`);
+    for (const name of embeddedNames) fields.push(`${name}.flags`, `${name}.name`, `${name}.type`);
     const index = await pack.getIndex({ fields });
     ATLAS.log(3, `Pack "${pack.metadata.label}" (${pack.collection}) -${index.size} entries, fields: [${fields}]`);
     for (const entry of index) {
@@ -295,7 +308,15 @@ export class DataSniffer {
       const flagData = entry.flags[scope];
       if (!flagData || typeof flagData !== 'object' || Object.keys(flagData).length === 0) continue;
       if (!byScope[scope]) byScope[scope] = { status: DataSniffer.#classify(scope, knownScopes), documents: [] };
-      byScope[scope].documents.push({ uuid, name: entry.name || '(unnamed)', type, packCollection: pack.collection, packLabel: pack.metadata.label, flagKeys: Object.keys(flagData) });
+      byScope[scope].documents.push({
+        uuid,
+        name: entry.name || '(unnamed)',
+        type,
+        packCollection: pack.collection,
+        packLabel: pack.metadata.label,
+        flagKeys: Object.keys(flagData),
+        unremovable: DataSniffer.#isUnremovable(type, entry.type)
+      });
     }
   }
 
@@ -526,7 +547,7 @@ export class DataSniffer {
   }
 
   /**
-   * Remove all flags of a scope from every compendium document in the report. Handles pack lock/unlock.
+   * Remove all flags of a scope from every compendium document in the report.
    * @param {string} scope - Flag scope to remove.
    * @param {object} report - The scan report.
    * @param {object} [options] - Optional parameters.
@@ -534,7 +555,7 @@ export class DataSniffer {
    * @returns {Promise<{count: number, failed: number}>} Documents updated and documents that could not be updated.
    */
   static async removeCompendiumFlagsForScope(scope, report, { silent = false } = {}) {
-    const entries = report.compendiumFlags[scope]?.documents ?? [];
+    const entries = (report.compendiumFlags[scope]?.documents ?? []).filter((e) => !e.unremovable);
     const byPack = {};
     for (const entry of entries) {
       if (!byPack[entry.packCollection]) byPack[entry.packCollection] = [];

@@ -183,7 +183,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       status: data.status,
       statusLabel: _loc(`SNOOT.Status.${data.status}`),
       badgeClass: BADGE_CLASS[data.status],
-      canClean: !['active', 'system'].includes(data.status),
+      canClean: !['active', 'system'].includes(data.status) && data.documents.some((d) => !d.unremovable),
       count: data.documents.length
     }));
     const usersGroups = report.users.users.filter((branch) => branch.entries.length).map((branch) => ({ key: `user:${branch.id}`, label: branch.name, count: branch.entries.length, isClient: false }));
@@ -296,9 +296,14 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #compendiumFlagRowHtml(doc, scope) {
     const esc = foundry.utils.escapeHTML;
-    const remove = esc(_loc('ATLAS.Common.Remove'));
     const keys = esc(doc.flagKeys.join(', '));
-    return `<tr><td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="pack-label">${esc(doc.packLabel)}</td><td class="flag-keys"><code>${keys}</code></td><td class="col-btn"><a data-action="removeCompendiumDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
+    const cells = `<td class="doc-name">${esc(doc.name)}</td><td>${esc(doc.type)}</td><td class="pack-label">${esc(doc.packLabel)}</td><td class="flag-keys"><code>${keys}</code></td>`;
+    if (doc.unremovable) {
+      const tip = esc(_loc('SNOOT.Tooltip.Unremovable'));
+      return `<tr class="unremovable-row">${cells}<td class="col-btn"><i class="fas fa-ban unremovable-icon" data-tooltip aria-label="${tip}"></i></td></tr>`;
+    }
+    const remove = esc(_loc('ATLAS.Common.Remove'));
+    return `<tr>${cells}<td class="col-btn"><a data-action="removeCompendiumDocFlag" data-uuid="${esc(doc.uuid)}" data-scope="${esc(scope)}" data-tooltip aria-label="${remove}"><i class="fas fa-trash"></i></a></td></tr>`;
   }
 
   /**

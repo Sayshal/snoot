@@ -79,6 +79,14 @@
     background: color-mix(in srgb, var(--color-level-info) 8%, transparent);
   }
 
+  .unremovable-row {
+    background: color-mix(in srgb, var(--color-level-error) 8%, transparent);
+  }
+
+  .unremovable-icon {
+    color: var(--color-level-error);
+  }
+
   .status-row {
     &.active {
       background: color-mix(in srgb, var(--color-level-success) 8%, transparent);
