@@ -1,2 +1,4 @@
 README.html
 snoot.lock
+/dist
+/node_modules

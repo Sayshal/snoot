@@ -19,6 +19,8 @@
 - Overview dashboard with summary cards for orphaned settings, flags, and stale data
 - Browse world settings grouped by module and see which ones are stale (unregistered)
 - Inspect flag scopes on world documents and compendium documents, including embedded children
+- Users tab grouping User document flags and user-scoped settings by player, plus the client settings held in the current browser
+- Players can open Snoot themselves and clear their own user data and browser-stored client settings
 - Modules are classified as Active, Inactive, Orphaned, or System (hover the badge for details)
 - Bulk cleanup buttons for orphaned data, inactive module data, and stale settings
 - Search bar on every tab to filter by module name or document
@@ -32,7 +34,7 @@ Install directly through Foundry's module manager or manually using this manifes
 
 1. Go to **Module Settings > Snoot > Sniff Data**
 2. The overview tab shows a summary of all module data found in your world
-3. Use the **Settings**, **World Flags**, and **Compendium Flags** tabs to drill into specific data
+3. Use the **Settings**, **World Flags**, **Compendium Flags**, and **Users** tabs to drill into specific data
 4. Click the trash icon to remove individual items, or use the footer buttons for bulk cleanup
 5. Hit **Rescan** after making changes to refresh the report
 

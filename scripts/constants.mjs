@@ -10,6 +10,7 @@ export const SETTINGS = { SHOW_CORE_FLAGS: 'showCoreFlags', SHOW_SYSTEM_FLAGS: '
 
 export const TEMPLATES = {
   FLAGS_COMPENDIUMS: `modules/${MODULE.ID}/templates/tabs/flags-compendiums-tab.hbs`,
+  FLAGS_USERS: `modules/${MODULE.ID}/templates/tabs/flags-users-tab.hbs`,
   FLAGS_WORLD: `modules/${MODULE.ID}/templates/tabs/flags-world-tab.hbs`,
   FOOTER: `modules/${MODULE.ID}/templates/footer.hbs`,
   HOW_TO: `modules/${MODULE.ID}/templates/tabs/how-to.hbs`,

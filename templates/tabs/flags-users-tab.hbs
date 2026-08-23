@@ -1,32 +1,35 @@
-<section class="tab settings-tab {{tab.cssClass}}" data-group="primary" data-tab="settings">
+<section class="tab flags-users-tab {{tab.cssClass}}" data-group="primary" data-tab="flagsUsers">
   <div class="tab-search">
     <i class="fas fa-search"></i>
     <input type="search" name="search" placeholder="{{localize "SNOOT.Search.Placeholder"}}" autocomplete="off"
       data-tooltip aria-label="{{localize "SNOOT.Tooltip.Search"}}">
   </div>
 
-  {{#each settingsGroups}}
-    <fieldset class="namespace-group collapsed {{this.status}}" data-namespace="{{this.namespace}}">
+  {{#if isPlayerView}}
+    <p class="client-caveat"><i class="fas fa-circle-info"></i> {{localize "SNOOT.Users.PlayerScope"}}</p>
+  {{/if}}
+
+  {{#each usersGroups}}
+    <fieldset class="namespace-group collapsed" data-namespace="{{this.key}}">
       <div class="namespace-header" data-action="toggleSection" data-tooltip
         aria-label="{{localize "SNOOT.Tooltip.Toggle"}}">
         <legend>
           <i class="fas fa-caret-down"></i>
-          <span class="tag badge {{this.badgeClass}}">{{this.statusLabel}}</span>
-          {{this.namespace}}
+          <i class="fas {{#if this.isClient}}fa-desktop{{else}}fa-user{{/if}}"></i>
+          {{this.label}}
           <span class="count">({{this.count}})</span>
-          {{#if this.hasStale}}<span class="stale-badge">{{this.staleCount}} stale</span>{{/if}}
         </legend>
-        {{#if this.canClean}}
-          <button type="button" data-action="deleteModuleSettings" data-namespace="{{this.namespace}}" data-tooltip
-            aria-label="{{localize "SNOOT.Action.DeleteAll"}}">
-            <i class="fas fa-trash"></i> {{localize "SNOOT.Action.DeleteAll"}}
-          </button>
-        {{/if}}
       </div>
       <div class="collapsible-content">
+        {{#if this.isClient}}
+          <p class="client-caveat"><i class="fas fa-circle-info"></i> {{localize "SNOOT.Users.ClientCaveat"}}</p>
+        {{/if}}
         <table class="settings-table">
           <thead>
             <tr>
+              <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Kind"}}">
+                {{localize "SNOOT.Label.Kind"}}
+              </th>
               <th class="col-fit" data-tooltip aria-label="{{localize "SNOOT.Tooltip.Col.Key"}}">
                 {{localize "SNOOT.Label.Key"}}
               </th>
@@ -41,7 +44,7 @@
     </fieldset>
   {{/each}}
 
-  {{#unless hasSettings}}
-    <p class="empty-state">{{localize "SNOOT.Empty.Settings"}}</p>
+  {{#unless hasUsers}}
+    <p class="empty-state">{{localize "SNOOT.Empty.Users"}}</p>
   {{/unless}}
 </section>
