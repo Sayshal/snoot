@@ -20,7 +20,7 @@
   "download": "",
   "compatibility": {
     "minimum": "14",
-    "verified": "14.366"
+    "verified": "14.367"
   },
   "esmodules": ["snoot.mjs"],
   "styles": ["styles/snoot.css"],
