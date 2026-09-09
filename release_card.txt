@@ -1,0 +1,8 @@
+## New Features
+
+- A Users tab groups each user's User document flags and user-scoped settings by user, plus the client settings stored in the current browser, with per-row delete buttons.
+- Players can open Snoot from Module Settings to review or clear their own user data and browser-stored client settings.
+
+## Bug Fixes
+
+- 7 bugs squashed
