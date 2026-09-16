@@ -606,6 +606,7 @@ export class DataSniffer {
    * @returns {Promise<number>} Count of settings and documents that could not be cleaned.
    */
   static async cleanModule(moduleId, report, { silent = false, includeUserData = false } = {}) {
+    if (!game.user.isGM) return 0;
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.CleaningModule', { localize: true, progress: true });
     progress?.update({ pct: 0, message: _loc('ATLAS.Common.Settings') });
     let failed = (await DataSniffer.deleteSettingsForModule(moduleId, { silent: true })).failed;
@@ -636,6 +637,7 @@ export class DataSniffer {
    * @private
    */
   static async #cleanAllByStatus(report, status, startMessageKey, completeMessageKey, includeUserData) {
+    if (!game.user.isGM) return;
     const namespaces = new Set();
     for (const [ns, data] of Object.entries(report.settings)) if (data.status === status) namespaces.add(ns);
     for (const [ns, data] of Object.entries(report.flags)) if (data.status === status) namespaces.add(ns);
@@ -679,6 +681,7 @@ export class DataSniffer {
    * @param {object} report - The scan report.
    */
   static async cleanAllStale(report) {
+    if (!game.user.isGM) return;
     const stale = [];
     for (const [, data] of Object.entries(report.settings)) for (const entry of data.entries) if (entry.isStale && !entry.isPendingRegistration) stale.push(entry);
     const total = stale.length;
