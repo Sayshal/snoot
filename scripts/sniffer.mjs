@@ -148,7 +148,8 @@ export class DataSniffer {
       displayValue: JSON.stringify(parsedValue),
       status,
       isStale,
-      isPendingRegistration: isStale && (status === 'active' || status === 'system')
+      isPendingRegistration: isStale && status === 'system',
+      isActiveLeftover: isStale && status === 'active'
     };
   }
 
@@ -349,23 +350,36 @@ export class DataSniffer {
   }
 
   /**
+   * Delete setting documents one at a time. A rejected delete is recorded and the rest are still attempted.
+   * @param {object[]} settings - Setting documents to delete.
+   * @param {object|null} [progress] - Progress notification to update per setting.
+   * @returns {Promise<{count: number, failed: number}>} Settings deleted and settings that could not be deleted.
+   * @private
+   */
+  static async #deleteSettings(settings, progress = null) {
+    let done = 0;
+    let failed = 0;
+    for (const setting of settings) {
+      try {
+        await setting.delete();
+      } catch (err) {
+        failed++;
+        ATLAS.log(1, `Failed to delete setting "${setting.key}"`, err);
+      }
+      done++;
+      progress?.update({ pct: done / settings.length, message: setting.key });
+    }
+    return { count: settings.length - failed, failed };
+  }
+
+  /**
    * Delete all user-scoped settings for a given namespace.
    * @param {string} namespace - Module namespace to delete settings for.
    * @returns {Promise<{count: number, failed: number}>} Settings deleted and settings that could not be deleted.
    * @private
    */
   static async #deleteUserSettingsForModule(namespace) {
-    const toDelete = game.settings.storage.get('world').filter((s) => s.user && s.key.startsWith(`${namespace}.`));
-    let failed = 0;
-    for (const setting of toDelete) {
-      try {
-        await setting.delete();
-      } catch (err) {
-        failed++;
-        ATLAS.log(1, `Failed to delete user setting "${setting.key}"`, err);
-      }
-    }
-    return { count: toDelete.length - failed, failed };
+    return DataSniffer.#deleteSettings(game.settings.storage.get('world').filter((s) => s.user && s.key.startsWith(`${namespace}.`)));
   }
 
   /**
@@ -394,25 +408,12 @@ export class DataSniffer {
    * @returns {Promise<{count: number, failed: number}>} Settings deleted and settings that could not be deleted.
    */
   static async deleteSettingsForModule(namespace, { silent = false } = {}) {
-    const worldSettings = game.settings.storage.get('world');
-    const toDelete = worldSettings.filter((s) => !s.user && s.key.startsWith(`${namespace}.`));
+    const toDelete = game.settings.storage.get('world').filter((s) => !s.user && s.key.startsWith(`${namespace}.`));
     const progress = silent ? null : ui.notifications.info('SNOOT.Progress.DeletingSettings', { localize: true, progress: true });
-    let done = 0;
-    let failed = 0;
-    for (const setting of toDelete) {
-      try {
-        await setting.delete();
-      } catch (err) {
-        failed++;
-        ATLAS.log(1, `Failed to delete setting "${setting.key}"`, err);
-      }
-      done++;
-      progress?.update({ pct: toDelete.length ? done / toDelete.length : 1, message: setting.key });
-    }
-    const result = { count: toDelete.length - failed, failed };
+    const result = await DataSniffer.#deleteSettings(toDelete, progress);
     if (silent) return result;
     ui.notifications.clear();
-    if (failed) ui.notifications.warn('SNOOT.Notify.DeletedSettingsPartial', { localize: true, format: { ...result, namespace }, duration: 5000 });
+    if (result.failed) ui.notifications.warn('SNOOT.Notify.DeletedSettingsPartial', { localize: true, format: { ...result, namespace }, duration: 5000 });
     else ui.notifications.success('SNOOT.Notify.DeletedSettings', { localize: true, format: { count: result.count, namespace }, duration: 3000 });
     return result;
   }
@@ -678,27 +679,23 @@ export class DataSniffer {
 
   /**
    * Delete all stale (unregistered) settings across every namespace.
+   * A rejected delete is recorded and the remaining settings are still attempted.
    * @param {object} report - The scan report.
+   * @param {object} [options] - Optional parameters.
+   * @param {boolean} [options.includeActive] - Also delete stale settings of active modules.
    */
-  static async cleanAllStale(report) {
+  static async cleanAllStale(report, { includeActive = false } = {}) {
     if (!game.user.isGM) return;
-    const stale = [];
-    for (const [, data] of Object.entries(report.settings)) for (const entry of data.entries) if (entry.isStale && !entry.isPendingRegistration) stale.push(entry);
-    const total = stale.length;
-    const progress = ui.notifications.info('SNOOT.Progress.CleaningStale', { localize: true, progress: true });
-    const worldSettings = game.settings.storage.get('world');
-    let count = 0;
-    let done = 0;
-    for (const entry of stale) {
-      const setting = worldSettings.find((s) => s.key === entry.key && !s.user);
-      done++;
-      if (setting) {
-        await setting.delete();
-        count++;
-      }
-      progress.update({ pct: total ? done / total : 1, message: entry.key });
+    const staleKeys = new Set();
+    for (const data of Object.values(report.settings)) {
+      for (const entry of data.entries) if (entry.isStale && !entry.isPendingRegistration && (includeActive || !entry.isActiveLeftover)) staleKeys.add(entry.key);
     }
+    const toDelete = game.settings.storage.get('world').filter((s) => !s.user && staleKeys.has(s.key));
+    const progress = ui.notifications.info('SNOOT.Progress.CleaningStale', { localize: true, progress: true });
+    const { count, failed } = await DataSniffer.#deleteSettings(toDelete, progress);
+    progress.update({ pct: 1 });
     ui.notifications.clear();
-    ui.notifications.success('SNOOT.Notify.DeletedStale', { localize: true, format: { count }, duration: 3000 });
+    if (failed) ui.notifications.warn('SNOOT.Notify.DeletedStalePartial', { localize: true, format: { count, failed }, duration: 5000 });
+    else ui.notifications.success('SNOOT.Notify.DeletedStale', { localize: true, format: { count }, duration: 3000 });
   }
 }

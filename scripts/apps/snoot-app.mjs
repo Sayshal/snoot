@@ -19,6 +19,7 @@ const BADGE_CLASS = { system: 'neutral', active: 'success', inactive: 'warning',
  */
 function registrationMarker(entry) {
   if (entry.isPendingRegistration) return { rowClass: 'pending-row', tooltip: _loc('SNOOT.Tooltip.Pending'), iconClass: 'fa-hourglass-half pending-icon' };
+  if (entry.isActiveLeftover) return { rowClass: 'stale-row', tooltip: _loc('SNOOT.Tooltip.ActiveLeftover'), iconClass: 'fa-exclamation-circle stale-icon' };
   if (entry.isStale) return { rowClass: 'stale-row', tooltip: _loc('SNOOT.Tooltip.Stale'), iconClass: 'fa-times-circle stale-icon' };
   return { rowClass: '', tooltip: _loc('SNOOT.Tooltip.Registered'), iconClass: 'fa-check-circle registered-icon' };
 }
@@ -131,7 +132,6 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (staleCount > 0) {
         totals.staleSettings += staleCount;
         moduleMap[ns].hasStaleSettings = true;
-        if (data.status === 'active') moduleMap[ns].canClean = true;
       }
     }
     for (const [ns, data] of Object.entries(report.flags)) {
@@ -535,6 +535,24 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Ask whether a stale clean should also delete stale settings of active modules.
+   * @returns {Promise<boolean>} True if the user opted in.
+   * @private
+   */
+  async #confirmActiveLeftovers() {
+    let count = 0;
+    for (const data of Object.values(this.#report?.settings ?? {})) count += data.entries.filter((e) => e.isActiveLeftover).length;
+    if (!count) return false;
+    return DialogV2.confirm({
+      classes: ['snoot'],
+      window: { title: 'SNOOT.Confirm.IncludeActiveLeftovers.Title' },
+      content: _loc('SNOOT.Confirm.IncludeActiveLeftovers.Content', { count }),
+      yes: { label: 'SNOOT.Action.IncludeActiveLeftovers' },
+      no: { label: 'SNOOT.Action.SkipActiveLeftovers', default: true }
+    });
+  }
+
+  /**
    * Re-scan all data.
    * @param {Event} _event - The triggering event.
    * @param {HTMLElement} _target - The clicked element.
@@ -612,7 +630,8 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCleanAllStale(_event, _target) {
     const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanStale.Title' }, content: _loc('SNOOT.Confirm.CleanStale.Content') });
     if (!confirmed) return;
-    await DataSniffer.cleanAllStale(this.#report);
+    const includeActive = await this.#confirmActiveLeftovers();
+    await DataSniffer.cleanAllStale(this.#report, { includeActive });
     await this.#invalidateAndRender();
   }
 
