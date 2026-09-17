@@ -1,27 +1,8 @@
 ## New Features
 
-- A Users tab groups each user's User document flags and user-scoped settings by user, plus the client settings stored in the current browser, with per-row delete buttons.
-- Players can now open Snoot from Module Settings and review or clear their own user data and browser-stored client settings.
+- Clean All Stale now asks whether to include active-module leftovers, and a failed delete no longer stops the run. Failures show a partial warning with a count.
+- Unregistered settings of active modules now show a Leftover status instead of Pending, and the How To tab documents it. Pending is kept for system and core settings only.
 
 ## Bug Fixes
 
-- A rejected flag write no longer drops the rest of its batch; the batch is retried one document at a time. A setting that cannot be deleted no longer aborts the remaining settings in that namespace.
-- Cleanup runs skip unremovable rows instead of attempting the write, so Clean Module and Clean All no longer report failures for them.
-- Compendium documents whose sub-type is no longer registered are now marked unremovable, since Foundry cannot write to them. The row gets a red tint and a barred icon in place of the delete button.
-- Flags stored on an unlinked token's own actor data are now found by the scan instead of being skipped.
-- Items a token inherits from its base actor are no longer listed under the token, so removing an inherited flag writes to the actor that holds it.
-- Snoot now registers a theme scope with ATLAS, so its ATLAS theme settings apply to the interface instead of being ignored.
-- Unregistered settings belonging to an active module or to a core/system scope are now marked Pending instead of Stale, so Clean All Stale no longer deletes settings a module has not registered yet.
-
-## Changes
-
-- Bulk cleanup buttons now prompt separately before touching user data, and never delete browser-stored client settings.
-- Bumped the verified Foundry compatibility version in module.json from 14.364 to 14.366.
-- Every confirmation dialog now carries the module's styling instead of appearing as an unthemed Foundry dialog.
-- Flag removal, settings deletion and module cleanup now warn with a count of the entries that could not be cleaned instead of showing a success toast.
-- Pending settings get their own hourglass icon, tooltip and row tint, and are excluded from the stale counts shown in the totals and per-module headers.
-- Summary cards and the sticky search bar now take their color from ATLAS theme variables with no hardcoded fallback, and the separate light-theme override block was removed.
-- The How To glossary lists the new Pending status and its stale entry now shows the same icon used in the tables.
-- The scope-level Remove All button is hidden when every compendium row in that scope is unremovable.
-- Token actor rows now show the token's name instead of "(unnamed)".
-- User flags moved out of the World Flags tab and user-scoped settings out of the Settings tab into the Users tab.
+- Players no longer see the Clean All footer buttons, and Clean Module, Clean All and Clean All Stale now do nothing for non-GM users.

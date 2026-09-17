@@ -1,8 +1,8 @@
 ## New Features
 
-- A Users tab groups each user's User document flags and user-scoped settings by user, plus the client settings stored in the current browser, with per-row delete buttons.
-- Players can open Snoot from Module Settings to review or clear their own user data and browser-stored client settings.
+- Clean All Stale now asks whether to include active-module leftovers and keeps going when a single delete fails.
+- Unregistered settings of active modules now show a Leftover status instead of Pending.
 
 ## Bug Fixes
 
-- 7 bugs squashed
+- 1 bug squashed
