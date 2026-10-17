@@ -1,5 +1,7 @@
 # Snoot
 
+![Snoot Hero](https://wiki.3deathsaves.com/snoot/hero.png)
+
 ![GitHub release](https://img.shields.io/github/v/release/Sayshal/snoot?style=for-the-badge)
 ![GitHub Downloads (specific asset, all releases)](<https://img.shields.io/github/downloads/Sayshal/snoot/module.zip?style=for-the-badge&logo=foundryvirtualtabletop&logoColor=white&logoSize=auto&label=Downloads%20(Total)&color=ff144f>)
 ![GitHub Downloads (specific asset, latest release)](<https://img.shields.io/github/downloads/Sayshal/snoot/latest/module.zip?sort=date&style=for-the-badge&logo=foundryvirtualtabletop&logoColor=white&logoSize=auto&label=Downloads%20(Latest)&color=ff144f>)
@@ -24,6 +26,10 @@
 - Modules are classified as Active, Inactive, Orphaned, or System (hover the badge for details)
 - Bulk cleanup buttons for orphaned data, inactive module data, and stale settings
 - Search bar on every tab to filter by module name or document
+
+<img src="https://wiki.3deathsaves.com/snoot/settings-tab.png" alt="Settings tab" width="750">
+<img src="https://wiki.3deathsaves.com/snoot/world-flags-tab.png" alt="World Flags tab" width="750">
+<img src="https://wiki.3deathsaves.com/snoot/users-tab.png" alt="Users tab" width="750">
 
 ## Installation
 
