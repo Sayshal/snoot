@@ -18,18 +18,24 @@
 
 ## Features
 
+**Settings:** Browse world settings grouped by module and see which ones are stale (unregistered).
+
+<img src="https://wiki.3deathsaves.com/snoot/settings-tab.png" alt="Settings tab" width="750">
+
+**World and Compendium Flags:** Inspect flag scopes on world documents and compendium documents, including embedded children.
+
+<img src="https://wiki.3deathsaves.com/snoot/world-flags-tab.png" alt="World Flags tab" width="750">
+
+**Users:** User document flags and user-scoped settings grouped by player, plus the client settings held in the current browser. Players can open Snoot themselves and clear their own user data and browser-stored client settings.
+
+<img src="https://wiki.3deathsaves.com/snoot/users-tab.png" alt="Users tab" width="750">
+
+### Also Included
+
 - Overview dashboard with summary cards for orphaned settings, flags, and stale data
-- Browse world settings grouped by module and see which ones are stale (unregistered)
-- Inspect flag scopes on world documents and compendium documents, including embedded children
-- Users tab grouping User document flags and user-scoped settings by player, plus the client settings held in the current browser
-- Players can open Snoot themselves and clear their own user data and browser-stored client settings
 - Modules are classified as Active, Inactive, Orphaned, or System (hover the badge for details)
 - Bulk cleanup buttons for orphaned data, inactive module data, and stale settings
 - Search bar on every tab to filter by module name or document
-
-<img src="https://wiki.3deathsaves.com/snoot/settings-tab.png" alt="Settings tab" width="750">
-<img src="https://wiki.3deathsaves.com/snoot/world-flags-tab.png" alt="World Flags tab" width="750">
-<img src="https://wiki.3deathsaves.com/snoot/users-tab.png" alt="Users tab" width="750">
 
 ## Installation
 
