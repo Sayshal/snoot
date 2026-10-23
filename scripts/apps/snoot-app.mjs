@@ -40,6 +40,13 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #expandedSections = new Map();
 
+  /**
+   * Search text per tab, restored after a re-render.
+   * @type {Map<string, string>}
+   * @private
+   */
+  #searchQueries = new Map();
+
   /** @param {object} [options] - Application options. */
   constructor(options = {}) {
     super(options);
@@ -441,7 +448,13 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   #bindSearchInputs() {
     const inputs = this.element.querySelectorAll('.tab-search input');
-    for (const input of inputs) input.addEventListener('input', this.#onSearchInput.bind(this));
+    for (const input of inputs) {
+      input.addEventListener('input', this.#onSearchInput.bind(this));
+      const saved = this.#searchQueries.get(input.closest('.tab')?.dataset.tab);
+      if (!saved) continue;
+      input.value = saved;
+      input.dispatchEvent(new Event('input'));
+    }
   }
 
   /**
@@ -454,6 +467,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const query = input.value.trim().toLowerCase();
     const tab = input.closest('.tab');
     if (!tab) return;
+    this.#searchQueries.set(tab.dataset.tab, input.value);
     const isOverview = tab.classList.contains('overview');
     if (isOverview) {
       const rows = tab.querySelectorAll('tbody tr');
@@ -501,6 +515,27 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!rescan) return;
     this.#report = null;
+    this.render();
+  }
+
+  /**
+   * Drop removed entries from the cached report and re-render without a rescan.
+   * @param {Function} keep - Predicate receiving an entry and its namespace, true for entries that remain.
+   * @private
+   */
+  #pruneAndRender(keep) {
+    const report = this.#report;
+    if (report) {
+      for (const section of [report.settings, report.flags, report.compendiumFlags]) {
+        for (const [ns, data] of Object.entries(section ?? {})) {
+          const list = data.entries ? 'entries' : 'documents';
+          data[list] = data[list].filter((entry) => keep(entry, ns));
+          if (!data[list].length) delete section[ns];
+        }
+      }
+      for (const branch of report.users?.users ?? []) branch.entries = branch.entries.filter((entry) => keep(entry, entry.namespace));
+      if (report.users) report.users.clientSettings = report.users.clientSettings.filter((entry) => keep(entry, entry.namespace));
+    }
     this.render();
   }
 
@@ -646,7 +681,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.DeleteSetting.Title' }, content: _loc('SNOOT.Confirm.DeleteSetting.Content', { key }) });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key);
-    await this.#invalidateAndRender();
+    this.#pruneAndRender((entry) => entry.kind || entry.key !== key);
   }
 
   /**
@@ -664,7 +699,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key, userId);
-    await this.#invalidateAndRender();
+    this.#pruneAndRender((entry) => !(entry.kind === 'setting' && entry.key === key && entry.userId === userId));
   }
 
   /**
@@ -678,7 +713,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.DeleteSetting.Title' }, content: _loc('SNOOT.Confirm.DeleteClientSetting.Content', { key }) });
     if (!confirmed) return;
     DataSniffer.deleteClientSetting(key);
-    await this.#invalidateAndRender();
+    this.#pruneAndRender((entry) => !(entry.kind === 'client' && entry.key === key));
   }
 
   /**
@@ -733,7 +768,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!confirmed) return;
     await DataSniffer.removeFlagsFromDocument(doc, scope);
-    await this.#invalidateAndRender();
+    this.#pruneAndRender((entry, ns) => !(entry.uuid === uuid && ns === scope));
   }
 
   /**
@@ -769,6 +804,6 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumDocFlag(uuid, scope);
-    await this.#invalidateAndRender();
+    this.#pruneAndRender((entry, ns) => !(entry.uuid === uuid && ns === scope));
   }
 }
