@@ -1,8 +1,7 @@
-## New Features
-
-- Clean All Stale now asks whether to include active-module leftovers, and a failed delete no longer stops the run. Failures show a partial warning with a count.
-- Unregistered settings of active modules now show a Leftover status instead of Pending, and the How To tab documents it. Pending is kept for system and core settings only.
-
 ## Bug Fixes
 
-- Players no longer see the Clean All footer buttons, and Clean Module, Clean All and Clean All Stale now do nothing for non-GM users.
+- Search text on each tab is no longer cleared when the list re-renders.
+
+## Changes
+
+- Single deletes (world setting, user setting, client setting, document flags, compendium document flags) now update the list in place and no longer show the "Rescan After Cleanup?" prompt. Bulk cleans still ask once.

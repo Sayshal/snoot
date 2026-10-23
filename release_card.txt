@@ -1,8 +1,3 @@
-## New Features
-
-- Clean All Stale now asks whether to include active-module leftovers and keeps going when a single delete fails.
-- Unregistered settings of active modules now show a Leftover status instead of Pending.
-
 ## Bug Fixes
 
 - 1 bug squashed
