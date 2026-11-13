@@ -509,7 +509,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const rescan = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.Rescan.Title' },
-      content: _loc('SNOOT.Confirm.Rescan.Content'),
+      content: `<p>${_loc('SNOOT.Confirm.Rescan.Content')}</p>`,
       yes: { label: 'SNOOT.Action.Rescan', default: true },
       no: { label: 'ATLAS.Common.Skip' }
     });
@@ -563,7 +563,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.IncludeUserData.Title' },
-      content: _loc('SNOOT.Confirm.IncludeUserData.Content', { count }),
+      content: `<p>${_loc('SNOOT.Confirm.IncludeUserData.Content', { count })}</p>`,
       yes: { label: 'SNOOT.Action.IncludeUserData' },
       no: { label: 'SNOOT.Action.SkipUserData', default: true }
     });
@@ -581,7 +581,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.IncludeActiveLeftovers.Title' },
-      content: _loc('SNOOT.Confirm.IncludeActiveLeftovers.Content', { count }),
+      content: `<p>${_loc('SNOOT.Confirm.IncludeActiveLeftovers.Content', { count })}</p>`,
       yes: { label: 'SNOOT.Action.IncludeActiveLeftovers' },
       no: { label: 'SNOOT.Action.SkipActiveLeftovers', default: true }
     });
@@ -621,7 +621,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onCleanModule(_event, target) {
     const moduleId = target.dataset.moduleId;
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanModule.Title' }, content: _loc('SNOOT.Confirm.CleanModule.Content', { module: moduleId }) });
+    const confirmed = await DialogV2.confirm({
+      classes: ['snoot'],
+      window: { title: 'SNOOT.Confirm.CleanModule.Title' },
+      content: `<p>${_loc('SNOOT.Confirm.CleanModule.Content', { module: moduleId })}</p>`
+    });
     if (!confirmed) return;
     const includeUserData = await this.#confirmUserData((e) => e.namespace === moduleId);
     await DataSniffer.cleanModule(moduleId, this.#report, { includeUserData });
@@ -635,7 +639,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @private
    */
   static async #onCleanAllOrphaned(_event, _target) {
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanAll.Title' }, content: _loc('SNOOT.Confirm.CleanAll.Content') });
+    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanAll.Title' }, content: `<p>${_loc('SNOOT.Confirm.CleanAll.Content')}</p>` });
     if (!confirmed) return;
     const includeUserData = await this.#confirmUserData((e) => e.status === 'orphaned');
     await DataSniffer.cleanAllOrphaned(this.#report, includeUserData);
@@ -649,7 +653,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @private
    */
   static async #onCleanAllInactive(_event, _target) {
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanInactive.Title' }, content: _loc('SNOOT.Confirm.CleanInactive.Content') });
+    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanInactive.Title' }, content: `<p>${_loc('SNOOT.Confirm.CleanInactive.Content')}</p>` });
     if (!confirmed) return;
     const includeUserData = await this.#confirmUserData((e) => e.status === 'inactive');
     await DataSniffer.cleanAllInactive(this.#report, includeUserData);
@@ -663,7 +667,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @private
    */
   static async #onCleanAllStale(_event, _target) {
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanStale.Title' }, content: _loc('SNOOT.Confirm.CleanStale.Content') });
+    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.CleanStale.Title' }, content: `<p>${_loc('SNOOT.Confirm.CleanStale.Content')}</p>` });
     if (!confirmed) return;
     const includeActive = await this.#confirmActiveLeftovers();
     await DataSniffer.cleanAllStale(this.#report, { includeActive });
@@ -678,7 +682,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onDeleteSetting(_event, target) {
     const key = target.dataset.key;
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.DeleteSetting.Title' }, content: _loc('SNOOT.Confirm.DeleteSetting.Content', { key }) });
+    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.DeleteSetting.Title' }, content: `<p>${_loc('SNOOT.Confirm.DeleteSetting.Content', { key })}</p>` });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key);
     this.#pruneAndRender((entry) => entry.kind || entry.key !== key);
@@ -695,7 +699,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
-      content: _loc('SNOOT.Confirm.DeleteUserSetting.Content', { key, user: game.users.get(userId)?.name ?? userId })
+      content: `<p>${_loc('SNOOT.Confirm.DeleteUserSetting.Content', { key, user: game.users.get(userId)?.name ?? userId })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.deleteSetting(key, userId);
@@ -710,7 +714,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onDeleteClientSetting(_event, target) {
     const key = target.dataset.key;
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.DeleteSetting.Title' }, content: _loc('SNOOT.Confirm.DeleteClientSetting.Content', { key }) });
+    const confirmed = await DialogV2.confirm({
+      classes: ['snoot'],
+      window: { title: 'SNOOT.Confirm.DeleteSetting.Title' },
+      content: `<p>${_loc('SNOOT.Confirm.DeleteClientSetting.Content', { key })}</p>`
+    });
     if (!confirmed) return;
     DataSniffer.deleteClientSetting(key);
     this.#pruneAndRender((entry) => !(entry.kind === 'client' && entry.key === key));
@@ -727,7 +735,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.DeleteModuleSettings.Title' },
-      content: _loc('SNOOT.Confirm.DeleteModuleSettings.Content', { module: namespace })
+      content: `<p>${_loc('SNOOT.Confirm.DeleteModuleSettings.Content', { module: namespace })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.deleteSettingsForModule(namespace);
@@ -742,7 +750,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onRemoveScopeFlags(_event, target) {
     const scope = target.dataset.scope;
-    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.RemoveScope.Title' }, content: _loc('SNOOT.Confirm.RemoveScope.Content', { scope }) });
+    const confirmed = await DialogV2.confirm({ classes: ['snoot'], window: { title: 'SNOOT.Confirm.RemoveScope.Title' }, content: `<p>${_loc('SNOOT.Confirm.RemoveScope.Content', { scope })}</p>` });
     if (!confirmed) return;
     await DataSniffer.removeFlagsForScope(scope, this.#report);
     await this.#invalidateAndRender();
@@ -764,7 +772,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
-      content: _loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: doc.name || uuid })
+      content: `<p>${_loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: doc.name || uuid })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.removeFlagsFromDocument(doc, scope);
@@ -782,7 +790,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.RemoveCompendiumScope.Title' },
-      content: _loc('SNOOT.Confirm.RemoveCompendiumScope.Content', { scope })
+      content: `<p>${_loc('SNOOT.Confirm.RemoveCompendiumScope.Content', { scope })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumFlagsForScope(scope, this.#report);
@@ -800,7 +808,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
-      content: _loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })
+      content: `<p>${_loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumDocFlag(uuid, scope);

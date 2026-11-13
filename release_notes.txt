@@ -1,7 +1,9 @@
 ## Bug Fixes
 
-- Search text on each tab is no longer cleared when the list re-renders.
+- Names and keys in confirmation dialogs no longer break onto separate lines.
+- World and user flag scans read only saved flag data. Flags that other modules add in memory are never saved and cannot be removed, so they are no longer listed.
 
 ## Changes
 
-- Single deletes (world setting, user setting, client setting, document flags, compendium document flags) now update the list in place and no longer show the "Rescan After Cleanup?" prompt. Bulk cleans still ask once.
+- Bulk cleaning writes changes in batches and loads compendium documents in groups. A failed batch is retried one item at a time. The progress bar advances per item.
+- Snoot is tested on dnd5e 6.1.
