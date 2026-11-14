@@ -161,7 +161,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const [ns, data] of Object.entries(userDataByNamespace)) addModule(ns, data, 'UserData', data.count);
     const statusOrder = { orphaned: 0, inactive: 1, active: 2, system: 3 };
     const modules = Object.values(moduleMap).sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.id.localeCompare(b.id));
-    const hasOrphaned = totals.orphanedSettings > 0 || totals.orphanedWorldFlags > 0 || totals.orphanedCompendiumFlags > 0;
+    const hasOrphaned = modules.some((m) => m.status === 'orphaned');
     const hasInactive = modules.some((m) => m.status === 'inactive');
     const hasStale = totals.staleSettings > 0;
     const settingsGroups = Object.entries(report.settings).map(([ns, data]) => {
@@ -177,6 +177,7 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
         count: data.entries.length
       };
     });
+    settingsGroups.sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.namespace.localeCompare(b.namespace));
     const worldFlagsGroups = Object.entries(report.flags).map(([scope, data]) => ({
       scope,
       status: data.status,
@@ -805,10 +806,11 @@ export class SnootApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onRemoveCompendiumDocFlag(_event, target) {
     const { uuid, scope } = target.dataset;
+    const name = this.#report?.compendiumFlags?.[scope]?.documents.find((d) => d.uuid === uuid)?.name ?? uuid;
     const confirmed = await DialogV2.confirm({
       classes: ['snoot'],
       window: { title: 'SNOOT.Confirm.RemoveDocFlag.Title' },
-      content: `<p>${_loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name: uuid })}</p>`
+      content: `<p>${_loc('SNOOT.Confirm.RemoveDocFlag.Content', { scope, name })}</p>`
     });
     if (!confirmed) return;
     await DataSniffer.removeCompendiumDocFlag(uuid, scope);

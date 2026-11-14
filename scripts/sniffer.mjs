@@ -210,6 +210,7 @@ export class DataSniffer {
     const clientSettings = [];
     for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
+      if (!/^[\w-]+\./.test(key)) continue;
       const entry = DataSniffer.#parseSettingEntry(key, storage.getItem(key), knownScopes);
       if (!entry || hiddenScopes.has(entry.namespace)) continue;
       clientSettings.push({ ...entry, kind: 'client' });
@@ -569,7 +570,9 @@ export class DataSniffer {
       const doc = await fromUuid(entry.uuid);
       if (doc) docs.push(doc);
     }
-    const result = await DataSniffer.#writeBatched(DataSniffer.#flagItems(docs, scope), tracker ?? DataSniffer.#tracker(bar, docs.length));
+    tracker ??= DataSniffer.#tracker(bar, entries.length);
+    for (let i = docs.length; i < entries.length; i++) tracker.step(scope);
+    const result = await DataSniffer.#writeBatched(DataSniffer.#flagItems(docs, scope), tracker);
     if (silent) return result;
     ui.notifications.clear();
     if (result.failed) ui.notifications.warn('SNOOT.Notify.RemovedFlagsPartial', { localize: true, format: { scope, ...result }, duration: 5000 });
@@ -592,8 +595,12 @@ export class DataSniffer {
     const pack = doc.compendium;
     const wasLocked = pack.locked;
     await pack.configure({ locked: false });
-    await doc.update({ flags: { [scope]: _del } });
-    if (wasLocked) await pack.configure({ locked: true });
+    try {
+      await doc.update({ flags: { [scope]: _del } });
+    } finally {
+      if (wasLocked) await pack.configure({ locked: true });
+    }
+    DataSniffer.#purgeIndexFlag(pack, [doc], scope);
     ui.notifications.clear();
     ui.notifications.info('SNOOT.Notify.RemovedFlagsFrom', { localize: true, format: { scope, name: doc.name || uuid } });
   }
@@ -621,25 +628,32 @@ export class DataSniffer {
     let failed = 0;
     for (const [collection, uuids] of Object.entries(byPack)) {
       const pack = game.packs.get(collection);
-      if (!pack) continue;
+      if (!pack) {
+        for (const uuid of uuids) tracker.step(uuid);
+        continue;
+      }
       tracker.note(_loc('SNOOT.Progress.Pack', { label: pack.metadata.label }));
       const wasLocked = pack.locked;
       await pack.configure({ locked: false });
-      for (let i = 0; i < uuids.length; i += DataSniffer.BATCH_SIZE) {
-        const chunk = uuids.slice(i, i + DataSniffer.BATCH_SIZE);
-        const primaryIds = [...new Set(chunk.map((uuid) => foundry.utils.parseUuid(uuid)?.primaryId).filter(Boolean))];
-        await pack.getDocuments({ _id__in: primaryIds });
-        const docs = [];
-        for (const uuid of chunk) {
-          const doc = await fromUuid(uuid);
-          if (doc) docs.push(doc);
+      try {
+        for (let i = 0; i < uuids.length; i += DataSniffer.BATCH_SIZE) {
+          const chunk = uuids.slice(i, i + DataSniffer.BATCH_SIZE);
+          const primaryIds = [...new Set(chunk.map((uuid) => foundry.utils.parseUuid(uuid)?.primaryId).filter(Boolean))];
+          await pack.getDocuments({ _id__in: primaryIds });
+          const docs = [];
+          for (const uuid of chunk) {
+            const doc = await fromUuid(uuid);
+            if (doc) docs.push(doc);
+            else tracker.step(uuid);
+          }
+          const removed = await DataSniffer.#writeBatched(DataSniffer.#flagItems(docs, scope), tracker);
+          count += removed.count;
+          failed += removed.failed;
+          DataSniffer.#purgeIndexFlag(pack, docs, scope);
         }
-        const removed = await DataSniffer.#writeBatched(DataSniffer.#flagItems(docs, scope), tracker);
-        count += removed.count;
-        failed += removed.failed;
-        DataSniffer.#purgeIndexFlag(pack, docs, scope);
+      } finally {
+        if (wasLocked) await pack.configure({ locked: true });
       }
-      if (wasLocked) await pack.configure({ locked: true });
     }
     const result = { count, failed };
     if (silent) return result;

@@ -14,7 +14,7 @@
           <span class="tag badge {{this.badgeClass}}">{{this.statusLabel}}</span>
           {{this.namespace}}
           <span class="count">({{this.count}})</span>
-          {{#if this.hasStale}}<span class="stale-badge">{{this.staleCount}} stale</span>{{/if}}
+          {{#if this.hasStale}}<span class="stale-badge">{{localize "SNOOT.Label.StaleCount" count=this.staleCount}}</span>{{/if}}
         </legend>
         {{#if this.canClean}}
           <button type="button" data-action="deleteModuleSettings" data-namespace="{{this.namespace}}" data-tooltip
