@@ -1,9 +1,11 @@
 ## Bug Fixes
 
-- Names and keys in confirmation dialogs no longer break onto separate lines.
-- World and user flag scans read only saved flag data. Flags that other modules add in memory are never saved and cannot be removed, so they are no longer listed.
-
-## Changes
-
-- Bulk cleaning writes changes in batches and loads compendium documents in groups. A failed batch is retried one item at a time. The progress bar advances per item.
-- Snoot is tested on dnd5e 6.1.
+- Clean All Orphaned appears when the only orphaned data is user-scoped.
+- Compendiums are re-locked even when a flag removal fails.
+- Long setting values wrap instead of widening the table.
+- Removing a single document's flag clears it from the compendium index.
+- Stale and document counts in group headers are localized.
+- The cleanup progress bar advances past missing compendiums and documents.
+- The confirmation dialog for removing a single document's flag shows the document name instead of its UUID.
+- The Settings tab sorts namespaces by status like the Overview.
+- The This Browser group no longer lists localStorage keys that are not module settings.
